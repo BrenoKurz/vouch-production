@@ -15,16 +15,16 @@ export default function HomeScreen() {
         <Text style={styles.eyebrow}>VOUCH</Text>
         <Text style={styles.title}>Welcome, {firstName}.</Text>
         <Text style={styles.subtitle}>
-          Your invitation is active. Your curated introductions and
-          date experiences will appear here.
+          Your private member experience is ready. We’ll build the live
+          introduction and date flows next.
         </Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>MEMBERSHIP</Text>
-          <Text style={styles.cardTitle}>You’re invited to Vouch</Text>
+          <Text style={styles.cardLabel}>NEXT STEP</Text>
+          <Text style={styles.cardTitle}>Complete your member foundation</Text>
           <Text style={styles.cardBody}>
-            The next feature will connect your live introductions to
-            this member experience.
+            We’ll connect your application status, profile, introductions, and
+            upcoming dates to the live Vouch backend.
           </Text>
         </View>
       </View>
@@ -33,14 +33,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F4EF',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-  },
+  screen: { flex: 1, backgroundColor: '#F7F4EF' },
+  content: { flex: 1, padding: 24 },
   eyebrow: {
     color: '#6E665F',
     fontSize: 12,
