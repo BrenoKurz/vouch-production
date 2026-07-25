@@ -114,12 +114,15 @@ function normalizeApplication(
     };
   }
 
+  const liveData =
+    data as LiveApplicationEnvelope['data'];
+
   return {
-    id: data.id,
-    status: normalizeDecision(data.admission_decision),
+    id: liveData.id,
+    status: normalizeDecision(liveData.admission_decision),
     submitted_at:
-      data.created_at ??
-      data.updated_at ??
+      liveData.created_at ??
+      liveData.updated_at ??
       new Date().toISOString(),
   };
 }
