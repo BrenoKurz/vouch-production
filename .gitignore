@@ -47,3 +47,9 @@ example
 # Local setup-script backups
 src/status-routing-backup-*/
 src/app.backup-*/
+
+# Local introductions setup backups
+src/introductions-list-backup-*/
+
+# Local application-form backups
+src/application-form-backup-*/

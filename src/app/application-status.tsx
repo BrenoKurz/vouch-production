@@ -67,7 +67,23 @@ export default function ApplicationStatusScreen() {
     return null;
   }
 
-  const content = copy[state.application.status];
+  const rawStatus = String(state.application.status);
+
+  const content =
+    copy[
+      rawStatus as Exclude<ApplicationStatus, 'invited'>
+    ] ?? {
+      eyebrow: 'APPLICATION UPDATE',
+      title: 'Your application is being reviewed.',
+      body:
+        'Your application has been received. Refresh this page later for the latest membership update.',
+    };
+
+  if (__DEV__ && !(rawStatus in copy)) {
+    console.warn(
+      `Unexpected application status received: ${rawStatus}`,
+    );
+  }
 
   return (
     <StatusLayout
