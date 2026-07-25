@@ -43,3 +43,7 @@ example
 /android
 
 .env
+
+# Local setup-script backups
+src/status-routing-backup-*/
+src/app.backup-*/
