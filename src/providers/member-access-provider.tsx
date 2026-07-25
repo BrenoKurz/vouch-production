@@ -24,8 +24,26 @@ type Application = {
   submitted_at: string;
 };
 
-type ApplicationEnvelope = {
-  data: Application;
+type ContractApplicationEnvelope = {
+  data: {
+    id: string;
+    status: ApplicationStatus;
+    submitted_at: string;
+  };
+  meta: {
+    request_id: string;
+    version: number;
+    contract_version: string;
+  };
+};
+
+type LiveApplicationEnvelope = {
+  data: {
+    id: string;
+    admission_decision?: string | null;
+    created_at?: string;
+    updated_at?: string;
+  };
   meta: {
     request_id: string;
     version: number;
@@ -56,6 +74,56 @@ type MemberAccessContextValue = {
 const MemberAccessContext =
   createContext<MemberAccessContextValue | null>(null);
 
+function normalizeDecision(
+  decision: string | null | undefined,
+): ApplicationStatus {
+  switch (decision?.toLowerCase()) {
+    case 'approved':
+    case 'invited':
+      return 'invited';
+
+    case 'waitlisted':
+    case 'waitlist':
+      return 'waitlisted';
+
+    case 'declined':
+    case 'rejected':
+    case 'denied':
+      return 'declined';
+
+    case 'banned':
+      return 'banned';
+
+    default:
+      return 'submitted';
+  }
+}
+
+function normalizeApplication(
+  response: ContractApplicationEnvelope | LiveApplicationEnvelope,
+): Application {
+  const data = response.data as
+    | ContractApplicationEnvelope['data']
+    | LiveApplicationEnvelope['data'];
+
+  if ('status' in data && data.status) {
+    return {
+      id: data.id,
+      status: data.status,
+      submitted_at: data.submitted_at,
+    };
+  }
+
+  return {
+    id: data.id,
+    status: normalizeDecision(data.admission_decision),
+    submitted_at:
+      data.created_at ??
+      data.updated_at ??
+      new Date().toISOString(),
+  };
+}
+
 export function MemberAccessProvider({
   children,
 }: PropsWithChildren) {
@@ -73,14 +141,13 @@ export function MemberAccessProvider({
     setState({ kind: 'loading' });
 
     try {
-      const response = await apiGet<ApplicationEnvelope>(
-        '/applications/me',
-        session.access_token,
-      );
+      const response = await apiGet<
+        ContractApplicationEnvelope | LiveApplicationEnvelope
+      >('/applications/me', session.access_token);
 
       setState({
         kind: 'application',
-        application: response.data,
+        application: normalizeApplication(response),
         version: response.meta.version,
         contractVersion: response.meta.contract_version,
       });

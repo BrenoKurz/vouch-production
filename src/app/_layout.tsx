@@ -57,6 +57,7 @@ function RootNavigator() {
 
         <Stack.Protected guard={hasInvitedAccess}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="introduction/[id]" />
         </Stack.Protected>
       </Stack>
     </>

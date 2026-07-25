@@ -158,16 +158,18 @@ export function apiGet<T>(
   });
 }
 
-export function apiPost<TResponse, TBody>(
+export function apiPost<TResponse, TBody = undefined>(
   path: string,
   accessToken: string,
-  body: TBody,
+  body?: TBody,
   idempotencyKey?: string,
+  headers?: Record<string, string>,
 ): Promise<TResponse> {
   return apiRequest<TResponse>(path, {
     method: 'POST',
     accessToken,
     body,
     idempotencyKey,
+    headers,
   });
 }

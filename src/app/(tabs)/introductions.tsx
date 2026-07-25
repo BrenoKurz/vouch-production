@@ -1,4 +1,5 @@
-import { useFocusEffect } from 'expo-router';
+import type { Href } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import {
   ActivityIndicator,
   FlatList,
@@ -20,69 +21,32 @@ import type {
   IntroductionsEnvelope,
 } from '@/types/introduction';
 
-const stateCopy: Record<
-  IntroductionState,
-  { label: string; tone: 'attention' | 'active' | 'muted' }
-> = {
-  awaiting_your_response: {
-    label: 'Awaiting your response',
-    tone: 'attention',
-  },
-  accepted_waiting: {
-    label: 'Waiting for their response',
-    tone: 'active',
-  },
-  mutual_ready: {
-    label: 'Mutual interest',
-    tone: 'active',
-  },
-  conversation_open: {
-    label: 'Conversation open',
-    tone: 'active',
-  },
-  date_proposed: {
-    label: 'Date proposed',
-    tone: 'active',
-  },
-  date_confirmed: {
-    label: 'Date confirmed',
-    tone: 'active',
-  },
-  debrief_pending: {
-    label: 'Debrief pending',
-    tone: 'attention',
-  },
-  completed: {
-    label: 'Completed',
-    tone: 'muted',
-  },
-  passed: {
-    label: 'Passed',
-    tone: 'muted',
-  },
-  timed_out: {
-    label: 'Timed out',
-    tone: 'muted',
-  },
-  kind_closed: {
-    label: 'Closed with care',
-    tone: 'muted',
-  },
-  expired: {
-    label: 'Expired',
-    tone: 'muted',
-  },
-  cancelled: {
-    label: 'Cancelled',
-    tone: 'muted',
-  },
+const states: Record<IntroductionState, string> = {
+  awaiting_your_response: 'Awaiting your response',
+  accepted_waiting: 'Waiting for their response',
+  mutual_ready: 'Mutual interest',
+  conversation_open: 'Conversation open',
+  date_proposed: 'Date proposed',
+  date_confirmed: 'Date confirmed',
+  debrief_pending: 'Debrief pending',
+  completed: 'Completed',
+  passed: 'Passed',
+  timed_out: 'Timed out',
+  kind_closed: 'Closed with care',
+  expired: 'Expired',
+  cancelled: 'Cancelled',
 };
+
+function priority(item: Introduction) {
+  if (item.member_state === 'awaiting_your_response') return 0;
+  if (item.member_state === 'debrief_pending') return 1;
+  if (item.member_state === 'accepted_waiting') return 2;
+  return 3;
+}
 
 function formatDeadline(value: string | null) {
   if (!value) return null;
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return null;
 
   return new Intl.DateTimeFormat(undefined, {
@@ -91,21 +55,6 @@ function formatDeadline(value: string | null) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
-}
-
-function priority(item: Introduction) {
-  if (item.member_state === 'awaiting_your_response') return 0;
-  if (item.member_state === 'debrief_pending') return 1;
-  if (
-    item.member_state === 'mutual_ready' ||
-    item.member_state === 'conversation_open' ||
-    item.member_state === 'date_proposed' ||
-    item.member_state === 'date_confirmed'
-  ) {
-    return 2;
-  }
-  if (item.member_state === 'accepted_waiting') return 3;
-  return 4;
 }
 
 export default function IntroductionsScreen() {
@@ -118,9 +67,8 @@ export default function IntroductionsScreen() {
   const sortedItems = useMemo(
     () =>
       [...items].sort((a, b) => {
-        const priorityDifference = priority(a) - priority(b);
-        if (priorityDifference !== 0) return priorityDifference;
-
+        const byPriority = priority(a) - priority(b);
+        if (byPriority !== 0) return byPriority;
         return (
           new Date(b.delivered_at).getTime() -
           new Date(a.delivered_at).getTime()
@@ -129,21 +77,19 @@ export default function IntroductionsScreen() {
     [items],
   );
 
-  const loadIntroductions = useCallback(
-    async (mode: 'initial' | 'refresh' = 'initial') => {
-      const accessToken = session?.access_token;
+  const load = useCallback(
+    async (refreshing = false) => {
+      if (!session?.access_token) return;
 
-      if (!accessToken) return;
-
-      if (mode === 'initial') setIsLoading(true);
-      if (mode === 'refresh') setIsRefreshing(true);
+      refreshing ? setIsRefreshing(true) : setIsLoading(true);
       setErrorMessage('');
 
       try {
         const response = await apiGet<IntroductionsEnvelope>(
           '/introductions',
-          accessToken,
+          session.access_token,
         );
+
         setItems(response.data);
       } catch (error) {
         if (
@@ -170,18 +116,16 @@ export default function IntroductionsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadIntroductions('initial');
-    }, [loadIntroductions]),
+      void load();
+    }, [load]),
   );
 
   if (isLoading) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.centered}>
+        <View style={styles.center}>
           <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.loadingText}>
-            Gathering your introductions…
-          </Text>
+          <Text style={styles.helper}>Gathering your introductions…</Text>
         </View>
       </SafeAreaView>
     );
@@ -190,17 +134,12 @@ export default function IntroductionsScreen() {
   if (errorMessage && items.length === 0) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.centered}>
-          <Text style={styles.errorEyebrow}>UNABLE TO LOAD</Text>
-          <Text style={styles.errorTitle}>
-            Your introductions are still private.
-          </Text>
-          <Text style={styles.errorBody}>{errorMessage}</Text>
-          <Pressable
-            onPress={() => void loadIntroductions('initial')}
-            style={styles.retryButton}
-          >
-            <Text style={styles.retryText}>Try again</Text>
+        <View style={styles.center}>
+          <Text style={styles.eyebrow}>UNABLE TO LOAD</Text>
+          <Text style={styles.emptyTitle}>Your introductions are still private.</Text>
+          <Text style={styles.emptyBody}>{errorMessage}</Text>
+          <Pressable onPress={() => void load()} style={styles.primaryButton}>
+            <Text style={styles.primaryText}>Try again</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -211,29 +150,36 @@ export default function IntroductionsScreen() {
     <SafeAreaView style={styles.screen}>
       <FlatList
         contentContainerStyle={[
-          styles.listContent,
-          sortedItems.length === 0 && styles.emptyListContent,
+          styles.list,
+          sortedItems.length === 0 && styles.emptyList,
         ]}
         data={sortedItems}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<EmptyState />}
         ListHeaderComponent={
-          sortedItems.length > 0 ? (
+          sortedItems.length ? (
             <View style={styles.header}>
               <Text style={styles.eyebrow}>CURATED FOR YOU</Text>
               <Text style={styles.title}>Introductions</Text>
-              <Text style={styles.subtitle}>
+              <Text style={styles.helper}>
                 Every introduction is selected thoughtfully by Vouch.
               </Text>
-              {errorMessage ? (
-                <Text style={styles.inlineError}>{errorMessage}</Text>
-              ) : null}
             </View>
           ) : null
         }
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={styles.eyebrow}>VOUCH</Text>
+            <Text style={styles.emptyTitle}>
+              Your next introduction will arrive thoughtfully.
+            </Text>
+            <Text style={styles.emptyBody}>
+              There is nothing to review right now.
+            </Text>
+          </View>
+        }
         refreshControl={
           <RefreshControl
-            onRefresh={() => void loadIntroductions('refresh')}
+            onRefresh={() => void load(true)}
             refreshing={isRefreshing}
             tintColor="#352D28"
           />
@@ -246,57 +192,48 @@ export default function IntroductionsScreen() {
 }
 
 function IntroductionCard({ item }: { item: Introduction }) {
-  const status = stateCopy[item.member_state];
   const photo = item.profile_snapshot.photos[0]?.url;
-  const deadline = formatDeadline(item.response_deadline_at);
   const prompt = item.profile_snapshot.prompts[0];
+  const deadline = formatDeadline(item.response_deadline_at);
+
+  function open() {
+    router.push(
+      {
+        pathname: '/introduction/[id]',
+        params: { id: item.id },
+      } as Href,
+    );
+  }
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={open}
+      style={({ pressed }) => [
+        styles.card,
+        pressed && styles.pressed,
+      ]}
+    >
       {photo ? (
-        <Image
-          accessibilityLabel={`${item.profile_snapshot.first_name}'s profile photo`}
-          source={{ uri: photo }}
-          style={styles.photo}
-        />
+        <Image source={{ uri: photo }} style={styles.photo} />
       ) : (
         <View style={[styles.photo, styles.photoPlaceholder]}>
-          <Text style={styles.photoInitial}>
+          <Text style={styles.initial}>
             {item.profile_snapshot.first_name.slice(0, 1).toUpperCase()}
           </Text>
         </View>
       )}
 
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <View style={styles.nameBlock}>
-            <Text style={styles.name}>
-              {item.profile_snapshot.first_name},{' '}
-              {item.profile_snapshot.age_display}
-            </Text>
-            <Text style={styles.neighborhood}>
-              {item.profile_snapshot.neighborhood}
-            </Text>
-          </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.name}>
+          {item.profile_snapshot.first_name}, {item.profile_snapshot.age_display}
+        </Text>
+        <Text style={styles.neighborhood}>
+          {item.profile_snapshot.neighborhood}
+        </Text>
 
-          <View
-            style={[
-              styles.badge,
-              status.tone === 'attention' && styles.badgeAttention,
-              status.tone === 'active' && styles.badgeActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.badgeText,
-                status.tone === 'attention' &&
-                  styles.badgeTextAttention,
-                status.tone === 'active' && styles.badgeTextActive,
-              ]}
-            >
-              {status.label}
-            </Text>
-          </View>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{states[item.member_state]}</Text>
         </View>
 
         {item.introduction_note.body ? (
@@ -306,10 +243,8 @@ function IntroductionCard({ item }: { item: Introduction }) {
         ) : null}
 
         {prompt ? (
-          <View style={styles.promptBlock}>
-            <Text style={styles.promptQuestion}>
-              {prompt.question}
-            </Text>
+          <View style={styles.prompt}>
+            <Text style={styles.promptQuestion}>{prompt.question}</Text>
             <Text numberOfLines={2} style={styles.promptAnswer}>
               {prompt.answer}
             </Text>
@@ -317,51 +252,25 @@ function IntroductionCard({ item }: { item: Introduction }) {
         ) : null}
 
         {deadline ? (
-          <Text style={styles.deadline}>
-            Respond by {deadline}
-          </Text>
+          <Text style={styles.deadline}>Respond by {deadline}</Text>
         ) : null}
-      </View>
-    </View>
-  );
-}
 
-function EmptyState() {
-  return (
-    <View style={styles.emptyState}>
-      <Text style={styles.eyebrow}>VOUCH</Text>
-      <Text style={styles.emptyTitle}>
-        Your next introduction will arrive thoughtfully.
-      </Text>
-      <Text style={styles.emptyBody}>
-        There is nothing to review right now. We’ll let you know when
-        a curated introduction is ready.
-      </Text>
-    </View>
+        <Text style={styles.openLabel}>View introduction →</Text>
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F4EF',
-  },
-  listContent: {
-    paddingBottom: 36,
-    paddingHorizontal: 20,
-  },
-  emptyListContent: {
-    flexGrow: 1,
-  },
-  header: {
-    paddingBottom: 22,
-    paddingTop: 22,
-  },
+  screen: { flex: 1, backgroundColor: '#F7F4EF' },
+  list: { paddingBottom: 36, paddingHorizontal: 20 },
+  emptyList: { flexGrow: 1 },
+  header: { paddingBottom: 22, paddingTop: 22 },
   eyebrow: {
     color: '#766E67',
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 2.2,
+    letterSpacing: 2,
   },
   title: {
     color: '#171717',
@@ -370,16 +279,11 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     marginTop: 10,
   },
-  subtitle: {
+  helper: {
     color: '#68635D',
     fontSize: 15,
     lineHeight: 22,
-    marginTop: 8,
-  },
-  inlineError: {
-    color: '#A33A32',
-    fontSize: 13,
-    marginTop: 12,
+    marginTop: 10,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -389,6 +293,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
+  pressed: { opacity: 0.86 },
   photo: {
     aspectRatio: 1.35,
     backgroundColor: '#EAE4DD',
@@ -398,58 +303,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photoInitial: {
-    color: '#776E66',
-    fontSize: 48,
-    fontWeight: '600',
-  },
-  cardContent: {
-    padding: 18,
-  },
-  cardHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  name: {
-    color: '#171717',
-    fontSize: 22,
-    fontWeight: '700',
-  },
-  neighborhood: {
-    color: '#746D66',
-    fontSize: 14,
-    marginTop: 4,
-  },
+  initial: { color: '#776E66', fontSize: 48, fontWeight: '600' },
+  cardBody: { padding: 18 },
+  name: { color: '#171717', fontSize: 23, fontWeight: '700' },
+  neighborhood: { color: '#746D66', fontSize: 14, marginTop: 4 },
   badge: {
-    backgroundColor: '#F0ECE7',
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8ECE9',
     borderRadius: 7,
-    maxWidth: 132,
+    marginTop: 13,
     paddingHorizontal: 9,
     paddingVertical: 6,
   },
-  badgeAttention: {
-    backgroundColor: '#F4E4DB',
-  },
-  badgeActive: {
-    backgroundColor: '#E5ECE8',
-  },
   badgeText: {
-    color: '#6E665F',
+    color: '#365C4D',
     fontSize: 10,
     fontWeight: '800',
-    textAlign: 'center',
     textTransform: 'uppercase',
-  },
-  badgeTextAttention: {
-    color: '#8B4A32',
-  },
-  badgeTextActive: {
-    color: '#365C4D',
   },
   note: {
     color: '#4E4944',
@@ -458,7 +328,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 16,
   },
-  promptBlock: {
+  prompt: {
     borderTopColor: '#EEE9E3',
     borderTopWidth: 1,
     marginTop: 16,
@@ -468,7 +338,6 @@ const styles = StyleSheet.create({
     color: '#766E67',
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.7,
     textTransform: 'uppercase',
   },
   promptAnswer: {
@@ -483,72 +352,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 16,
   },
-  centered: {
+  openLabel: {
+    color: '#352D28',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 18,
+  },
+  center: {
     alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
     padding: 28,
   },
-  loadingText: {
-    color: '#68635D',
-    fontSize: 15,
-    marginTop: 18,
-  },
-  errorEyebrow: {
-    color: '#9A4A3E',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-  },
-  errorTitle: {
-    color: '#171717',
-    fontSize: 28,
-    fontWeight: '600',
-    lineHeight: 34,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  errorBody: {
-    color: '#68635D',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  retryButton: {
-    alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
-    height: 52,
-    justifyContent: 'center',
-    marginTop: 26,
-    paddingHorizontal: 28,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  emptyState: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
   emptyTitle: {
     color: '#171717',
-    fontSize: 30,
+    fontSize: 29,
     fontWeight: '600',
-    letterSpacing: -0.8,
-    lineHeight: 36,
-    marginTop: 16,
+    lineHeight: 35,
+    marginTop: 14,
     textAlign: 'center',
   },
   emptyBody: {
     color: '#68635D',
     fontSize: 16,
     lineHeight: 24,
-    marginTop: 14,
+    marginTop: 12,
     textAlign: 'center',
   },
+  primaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#352D28',
+    borderRadius: 10,
+    height: 52,
+    justifyContent: 'center',
+    marginTop: 24,
+    paddingHorizontal: 28,
+  },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 });

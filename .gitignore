@@ -53,3 +53,6 @@ src/introductions-list-backup-*/
 
 # Local application-form backups
 src/application-form-backup-*/
+
+# Local introduction-detail backups
+src/introduction-detail-backup-*/

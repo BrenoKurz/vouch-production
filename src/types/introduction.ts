@@ -62,3 +62,13 @@ export type IntroductionsEnvelope = {
     contract_version: string;
   };
 };
+
+
+export type IntroductionEnvelope = {
+  data: Introduction;
+  meta: {
+    request_id: string;
+    version: number;
+    contract_version: string;
+  };
+};
