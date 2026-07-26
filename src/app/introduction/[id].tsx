@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import {
+  type Href,
   router,
   useFocusEffect,
   useLocalSearchParams,
@@ -139,12 +140,32 @@ export default function IntroductionDetailScreen() {
       setItem(response.data);
 
       if (action === 'accept') {
-        Alert.alert(
-          'Introduction accepted',
-          response.data.member_state === 'mutual_ready'
-            ? 'The interest is mutual. Your next step is ready.'
-            : 'We’ll let you know when they respond.',
-        );
+        if (response.data.conversation_id) {
+          const conversationId = response.data.conversation_id;
+
+          Alert.alert(
+            'It’s mutual',
+            'Your private conversation is now open.',
+            [
+              { text: 'Not now', style: 'cancel' },
+              {
+                text: 'Open conversation',
+                onPress: () =>
+                  router.push(
+                    {
+                      pathname: '/conversation/[id]',
+                      params: { id: conversationId },
+                    } as Href,
+                  ),
+              },
+            ],
+          );
+        } else {
+          Alert.alert(
+            'Introduction accepted',
+            'We’ll let you know when they respond.',
+          );
+        }
       } else {
         Alert.alert(
           'Introduction passed',
@@ -252,6 +273,11 @@ export default function IntroductionDetailScreen() {
   const profile = item.profile_snapshot;
   const canAccept = item.available_actions.includes('accept');
   const canPass = item.available_actions.includes('pass');
+  const conversationId = item.conversation_id;
+  const canOpenConversation = Boolean(
+    conversationId &&
+      item.available_actions.includes('open_conversation'),
+  );
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -373,6 +399,38 @@ export default function IntroductionDetailScreen() {
                 )}
               </Pressable>
             ) : null}
+          </View>
+        ) : canOpenConversation && conversationId ? (
+          <View style={styles.matchCard}>
+            <View style={styles.matchIcon}>
+              <Ionicons color="#365C4D" name="heart" size={22} />
+            </View>
+            <Text style={styles.matchTitle}>
+              The interest is mutual.
+            </Text>
+            <Text style={styles.matchBody}>
+              Your private conversation with {profile.first_name} is open.
+            </Text>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  {
+                    pathname: '/conversation/[id]',
+                    params: { id: conversationId },
+                  } as Href,
+                )
+              }
+              style={styles.openConversationButton}
+            >
+              <Text style={styles.openConversationText}>
+                Open conversation
+              </Text>
+              <Ionicons
+                color="#FFFFFF"
+                name="arrow-forward"
+                size={18}
+              />
+            </Pressable>
           </View>
         ) : (
           <View style={styles.resolvedCard}>
@@ -548,6 +606,53 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   passText: { color: '#352D28', fontSize: 16, fontWeight: '700' },
+  matchCard: {
+    alignItems: 'center',
+    backgroundColor: '#E8ECE9',
+    borderColor: '#D4DED8',
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 28,
+    padding: 22,
+  },
+  matchIcon: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 23,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
+  matchTitle: {
+    color: '#244437',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 14,
+    textAlign: 'center',
+  },
+  matchBody: {
+    color: '#53675F',
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 7,
+    textAlign: 'center',
+  },
+  openConversationButton: {
+    alignItems: 'center',
+    backgroundColor: '#352D28',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 8,
+    height: 54,
+    justifyContent: 'center',
+    marginTop: 18,
+    width: '100%',
+  },
+  openConversationText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   resolvedCard: {
     backgroundColor: '#EEEAE5',
     borderRadius: 10,

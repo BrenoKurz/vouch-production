@@ -195,6 +195,10 @@ function IntroductionCard({ item }: { item: Introduction }) {
   const photo = item.profile_snapshot.photos[0]?.url;
   const prompt = item.profile_snapshot.prompts[0];
   const deadline = formatDeadline(item.response_deadline_at);
+  const hasConversation = Boolean(
+    item.conversation_id &&
+      item.available_actions.includes('open_conversation'),
+  );
 
   function open() {
     router.push(
@@ -255,7 +259,11 @@ function IntroductionCard({ item }: { item: Introduction }) {
           <Text style={styles.deadline}>Respond by {deadline}</Text>
         ) : null}
 
-        <Text style={styles.openLabel}>View introduction →</Text>
+        <Text style={styles.openLabel}>
+          {hasConversation
+            ? 'Open conversation →'
+            : 'View introduction →'}
+        </Text>
       </View>
     </Pressable>
   );
