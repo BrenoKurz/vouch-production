@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import {
+  type Href,
   router,
   useFocusEffect,
   useLocalSearchParams,
@@ -35,6 +36,7 @@ import type {
 
 function formatTime(value: string) {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return '';
 
   return new Intl.DateTimeFormat(undefined, {
@@ -45,6 +47,7 @@ function formatTime(value: string) {
 
 function formatExpiry(value: string) {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return null;
 
   return new Intl.DateTimeFormat(undefined, {
@@ -58,6 +61,7 @@ export default function ConversationScreen() {
     id?: string | string[];
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
   const { session, signOut } = useAuth();
   const listRef = useRef<FlatList<ConversationMessage>>(null);
 
@@ -97,6 +101,7 @@ export default function ConversationScreen() {
           `/conversations/${encodeURIComponent(id)}`,
           session.access_token,
         );
+
         setConversation(response.data);
       } catch (error) {
         if (
@@ -136,6 +141,9 @@ export default function ConversationScreen() {
   );
 
   const isOpen = conversation?.state === 'open';
+  const canProposeDate = Boolean(
+    conversation?.available_actions.includes('propose_date'),
+  );
   const canSend =
     Boolean(isOpen) &&
     draft.trim().length > 0 &&
@@ -175,7 +183,7 @@ export default function ConversationScreen() {
       setConversation((current) => {
         if (!current) return current;
 
-        const exists = current.messages.some(
+        const alreadyPresent = current.messages.some(
           (message) => message.id === response.data.id,
         );
 
@@ -183,7 +191,7 @@ export default function ConversationScreen() {
           ...current,
           version: response.data.conversation_version,
           last_message_at: response.data.sent_at,
-          messages: exists
+          messages: alreadyPresent
             ? current.messages
             : [...current.messages, response.data],
         };
@@ -264,6 +272,7 @@ export default function ConversationScreen() {
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
         style={styles.keyboardView}
       >
         <Header
@@ -299,7 +308,11 @@ export default function ConversationScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.matchIcon}>
-                <Ionicons color="#365C4D" name="heart" size={24} />
+                <Ionicons
+                  color="#365C4D"
+                  name="heart"
+                  size={24}
+                />
               </View>
               <Text style={styles.emptyTitle}>
                 The interest is mutual.
@@ -321,6 +334,73 @@ export default function ConversationScreen() {
           </View>
         ) : null}
 
+        {canProposeDate ? (
+          <View style={styles.dateActionCard}>
+            <View style={styles.dateActionIcon}>
+              <Ionicons
+                color="#365C4D"
+                name="calendar-outline"
+                size={20}
+              />
+            </View>
+            <View style={styles.dateActionCopy}>
+              <Text style={styles.dateActionTitle}>
+                Ready to meet?
+              </Text>
+              <Text style={styles.dateActionBody}>
+                Propose a date and time for {counterpartName}.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() =>
+                router.push(
+                  {
+                    pathname:
+                      '/schedule-date/[conversationId]',
+                    params: {
+                      conversationId: conversation.id,
+                    },
+                  } as Href,
+                )
+              }
+              style={styles.dateActionButton}
+            >
+              <Text style={styles.dateActionButtonText}>Plan</Text>
+            </Pressable>
+          </View>
+        ) : conversation.date_id ? (
+          <Pressable
+            onPress={() =>
+              router.push(
+                {
+                  pathname: '/date/[id]',
+                  params: { id: conversation.date_id },
+                } as Href,
+              )
+            }
+            style={styles.viewDateCard}
+          >
+            <Ionicons
+              color="#365C4D"
+              name="calendar"
+              size={20}
+            />
+            <View style={styles.viewDateCopy}>
+              <Text style={styles.viewDateTitle}>
+                View your date plan
+              </Text>
+              <Text style={styles.viewDateBody}>
+                Review the proposal or confirmed details.
+              </Text>
+            </View>
+            <Ionicons
+              color="#352D28"
+              name="chevron-forward"
+              size={20}
+            />
+          </Pressable>
+        ) : null}
+
         {isOpen ? (
           <View style={styles.composer}>
             <TextInput
@@ -329,8 +409,12 @@ export default function ConversationScreen() {
               maxLength={4000}
               multiline
               onChangeText={setDraft}
+              onSubmitEditing={() => {
+                if (canSend) void sendMessage();
+              }}
               placeholder={`Message ${counterpartName}`}
               placeholderTextColor="#918A83"
+              returnKeyType="send"
               style={styles.input}
               value={draft}
             />
@@ -450,7 +534,10 @@ function Header({
 }
 
 const styles = StyleSheet.create({
-  screen: { backgroundColor: '#F7F4EF', flex: 1 },
+  screen: {
+    backgroundColor: '#F7F4EF',
+    flex: 1,
+  },
   keyboardView: { flex: 1 },
   header: {
     alignItems: 'center',
@@ -552,6 +639,71 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   myMessageTime: { color: '#D8D0C9' },
+  dateActionCard: {
+    alignItems: 'center',
+    backgroundColor: '#E8ECE9',
+    borderTopColor: '#D4DED8',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  dateActionIcon: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  dateActionCopy: { flex: 1 },
+  dateActionTitle: {
+    color: '#29483B',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  dateActionBody: {
+    color: '#60736B',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  dateActionButton: {
+    alignItems: 'center',
+    backgroundColor: '#352D28',
+    borderRadius: 9,
+    height: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  dateActionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  viewDateCard: {
+    alignItems: 'center',
+    backgroundColor: '#E8ECE9',
+    borderTopColor: '#D4DED8',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 11,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  viewDateCopy: { flex: 1 },
+  viewDateTitle: {
+    color: '#29483B',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  viewDateBody: {
+    color: '#60736B',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
   composer: {
     alignItems: 'flex-end',
     backgroundColor: '#FFFFFF',

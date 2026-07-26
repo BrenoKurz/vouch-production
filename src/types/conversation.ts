@@ -4,6 +4,8 @@ export type ConversationState =
   | 'closed_passed'
   | 'closed_expired';
 
+export type ConversationAction = 'propose_date';
+
 export type ConversationMessage = {
   id: string;
   body: string;
@@ -21,11 +23,16 @@ export type Conversation = {
   opened_at: string;
   expires_at: string;
   last_message_at: string | null;
+  date_id: string | null;
+  available_actions: ConversationAction[];
   counterpart_profile: {
     first_name: string;
     age_display: number;
     neighborhood: string;
-    photos: Array<{ id: string; url: string }>;
+    photos: Array<{
+      id: string;
+      url: string;
+    }>;
     prompts: Array<{
       id: string;
       question: string;
