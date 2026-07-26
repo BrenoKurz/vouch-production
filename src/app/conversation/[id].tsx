@@ -401,6 +401,33 @@ export default function ConversationScreen() {
           </Pressable>
         ) : null}
 
+        <Pressable
+          onPress={() =>
+            router.push(
+              {
+                pathname:
+                  '/report-safety/[conversationId]',
+                params: {
+                  conversationId: conversation.id,
+                  ...(conversation.date_id
+                    ? { dateId: conversation.date_id }
+                    : {}),
+                },
+              } as Href,
+            )
+          }
+          style={styles.safetyAction}
+        >
+          <Ionicons
+            color="#943D35"
+            name="shield-outline"
+            size={18}
+          />
+          <Text style={styles.safetyActionText}>
+            Report a safety concern
+          </Text>
+        </Pressable>
+
         {isOpen ? (
           <View style={styles.composer}>
             <TextInput
@@ -703,6 +730,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginTop: 2,
+  },
+  safetyAction: {
+    alignItems: 'center',
+    backgroundColor: '#F8EFED',
+    borderTopColor: '#E6C8C3',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 46,
+    paddingHorizontal: 14,
+  },
+  safetyActionText: {
+    color: '#943D35',
+    fontSize: 13,
+    fontWeight: '800',
   },
   composer: {
     alignItems: 'flex-end',

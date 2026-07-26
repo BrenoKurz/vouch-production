@@ -70,6 +70,18 @@ function RootNavigator() {
           name="reschedule-date/[id]"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="report-safety/[conversationId]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="safety-case/[id]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="safety-cases/index"
+          options={{ headerShown: false }}
+        />
         </Stack.Protected>
       </Stack>
     </>

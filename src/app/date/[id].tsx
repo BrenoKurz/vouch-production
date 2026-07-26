@@ -481,6 +481,39 @@ export default function DateDetailScreen() {
           onPress={() =>
             router.push(
               {
+                pathname:
+                  '/report-safety/[conversationId]',
+                params: {
+                  conversationId: item.conversation_id,
+                  dateId: item.id,
+                },
+              } as Href,
+            )
+          }
+          style={[
+            styles.secondaryButton,
+            { borderColor: '#D7A9A3' },
+          ]}
+        >
+          <Ionicons
+            color="#943D35"
+            name="shield-outline"
+            size={18}
+          />
+          <Text
+            style={[
+              styles.secondaryText,
+              { color: '#943D35' },
+            ]}
+          >
+            Report a safety concern
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            router.push(
+              {
                 pathname: '/conversation/[id]',
                 params: { id: item.conversation_id },
               } as Href,
