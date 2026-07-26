@@ -106,8 +106,7 @@ export async function attachSafetyEvidence(input: {
   );
 
   return apiPost<
-    LocalEvidenceAsset,
-  SafetyCaseEnvelope,
+    SafetyCaseEnvelope,
     { upload_id: string }
   >(
     `/safety-cases/${encodeURIComponent(caseId)}/evidence`,
