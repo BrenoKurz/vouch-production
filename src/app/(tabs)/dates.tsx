@@ -228,7 +228,9 @@ function DateCard({ item }: { item: VouchDate }) {
             </Text>
           </View>
 
-          {item.can_confirm ? (
+          {item.can_complete_debrief ? (
+            <Text style={styles.actionText}>Debrief →</Text>
+          ) : item.can_confirm ? (
             <Text style={styles.actionText}>Review →</Text>
           ) : (
             <Text style={styles.actionText}>View →</Text>

@@ -61,6 +61,7 @@ function RootNavigator() {
           <Stack.Screen name="conversation/[id]" />
           <Stack.Screen name="schedule-date/[conversationId]" />
           <Stack.Screen name="date/[id]" />
+          <Stack.Screen name="debrief/[id]" />
         </Stack.Protected>
       </Stack>
     </>

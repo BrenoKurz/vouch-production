@@ -25,6 +25,9 @@ export type VouchDate = {
   venue: Venue | null;
   my_confirmed: boolean;
   can_confirm: boolean;
+  debrief_id: string | null;
+  debrief_state: 'pending' | 'submitted' | 'expired' | null;
+  can_complete_debrief: boolean;
   counterpart_profile: {
     first_name: string;
     age_display: number;

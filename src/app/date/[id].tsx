@@ -293,7 +293,15 @@ export default function DateDetailScreen() {
                   : `Waiting for ${profile.first_name} to confirm.`
                 : item.state === 'confirmed'
                   ? 'Both of you have confirmed this plan.'
-                  : 'Vouch will guide the next step.'}
+                  : item.state === 'debrief_pending'
+                    ? item.can_complete_debrief
+                      ? 'Your private post-date check-in is ready.'
+                      : 'Your feedback is recorded. Waiting for the other private response.'
+                    : item.state === 'completed'
+                      ? 'Both private check-ins are complete.'
+                      : item.state === 'disputed'
+                        ? 'A private concern was reported and is under review.'
+                        : 'Vouch will guide the next step.'}
             </Text>
           </View>
         </View>
@@ -378,6 +386,24 @@ export default function DateDetailScreen() {
                 Confirm this date
               </Text>
             )}
+          </Pressable>
+        ) : null}
+
+        {item.can_complete_debrief && item.debrief_id ? (
+          <Pressable
+            onPress={() =>
+              router.push(
+                {
+                  pathname: '/debrief/[id]',
+                  params: { id: item.debrief_id },
+                } as Href,
+              )
+            }
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryText}>
+              Complete private debrief
+            </Text>
           </Pressable>
         ) : null}
 
