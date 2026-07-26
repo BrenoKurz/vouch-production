@@ -210,6 +210,13 @@ function DateCard({ item }: { item: VouchDate }) {
           {item.venue?.name ?? 'Location to be decided together'}
         </Text>
 
+        {item.reschedule_count > 0 ? (
+          <Text style={styles.venue}>
+            Updated {item.reschedule_count}{' '}
+            {item.reschedule_count === 1 ? 'time' : 'times'}
+          </Text>
+        ) : null}
+
         <View style={styles.cardFooter}>
           <View
             style={[
@@ -232,6 +239,9 @@ function DateCard({ item }: { item: VouchDate }) {
             <Text style={styles.actionText}>Debrief →</Text>
           ) : item.can_confirm ? (
             <Text style={styles.actionText}>Review →</Text>
+          ) : item.state === 'cancelled' &&
+            item.can_reschedule ? (
+            <Text style={styles.actionText}>Reschedule →</Text>
           ) : (
             <Text style={styles.actionText}>View →</Text>
           )}

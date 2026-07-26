@@ -62,6 +62,14 @@ function RootNavigator() {
           <Stack.Screen name="schedule-date/[conversationId]" />
           <Stack.Screen name="date/[id]" />
           <Stack.Screen name="debrief/[id]" />
+        <Stack.Screen
+          name="cancel-date/[id]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="reschedule-date/[id]"
+          options={{ headerShown: false }}
+        />
         </Stack.Protected>
       </Stack>
     </>

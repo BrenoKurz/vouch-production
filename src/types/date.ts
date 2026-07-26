@@ -25,6 +25,10 @@ export type VouchDate = {
   venue: Venue | null;
   my_confirmed: boolean;
   can_confirm: boolean;
+  reschedule_count: number;
+  can_cancel: boolean;
+  can_reschedule: boolean;
+  cancelled_by_me: boolean;
   debrief_id: string | null;
   debrief_state: 'pending' | 'submitted' | 'expired' | null;
   can_complete_debrief: boolean;

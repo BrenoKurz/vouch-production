@@ -299,9 +299,11 @@ export default function DateDetailScreen() {
                       : 'Your feedback is recorded. Waiting for the other private response.'
                     : item.state === 'completed'
                       ? 'Both private check-ins are complete.'
-                      : item.state === 'disputed'
-                        ? 'A private concern was reported and is under review.'
-                        : 'Vouch will guide the next step.'}
+                      : item.state === 'cancelled'
+                        ? 'This plan was cancelled. Either of you can propose a new date.'
+                        : item.state === 'disputed'
+                          ? 'A private concern was reported and is under review.'
+                          : 'Vouch will guide the next step.'}
             </Text>
           </View>
         </View>
@@ -369,6 +371,18 @@ export default function DateDetailScreen() {
           </View>
         </View>
 
+        {item.reschedule_count > 0 ? (
+          <Text
+            style={[
+              styles.detailMeta,
+              { marginTop: 12, textAlign: 'center' },
+            ]}
+          >
+            This plan has been updated {item.reschedule_count}{' '}
+            {item.reschedule_count === 1 ? 'time' : 'times'}.
+          </Text>
+        ) : null}
+
         {errorMessage ? (
           <Text style={styles.inlineError}>{errorMessage}</Text>
         ) : null}
@@ -403,6 +417,62 @@ export default function DateDetailScreen() {
           >
             <Text style={styles.primaryText}>
               Complete private debrief
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {item.can_reschedule ? (
+          <Pressable
+            onPress={() =>
+              router.push(
+                {
+                  pathname: '/reschedule-date/[id]',
+                  params: { id: item.id },
+                } as Href,
+              )
+            }
+            style={styles.secondaryButton}
+          >
+            <Ionicons
+              color="#352D28"
+              name="calendar-outline"
+              size={18}
+            />
+            <Text style={styles.secondaryText}>
+              {item.state === 'cancelled'
+                ? 'Propose a new date'
+                : 'Reschedule date'}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {item.can_cancel ? (
+          <Pressable
+            onPress={() =>
+              router.push(
+                {
+                  pathname: '/cancel-date/[id]',
+                  params: { id: item.id },
+                } as Href,
+              )
+            }
+            style={[
+              styles.secondaryButton,
+              { borderColor: '#D7B4AA' },
+            ]}
+          >
+            <Ionicons
+              color="#8D3933"
+              name="close-circle-outline"
+              size={18}
+            />
+            <Text
+              style={[
+                styles.secondaryText,
+                { color: '#8D3933' },
+              ]}
+            >
+              Cancel date
             </Text>
           </Pressable>
         ) : null}
