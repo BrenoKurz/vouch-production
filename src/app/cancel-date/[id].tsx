@@ -22,7 +22,11 @@ import { useCallback, useState } from 'react';
 
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
-import type { DateEnvelope, VouchDate } from '@/types/date';
+import type {
+  DateCancellationRequest,
+  DateEnvelope,
+  VouchDate,
+} from '@/types/date';
 
 export default function CancelDateScreen() {
   const params = useLocalSearchParams<{
@@ -86,10 +90,7 @@ export default function CancelDateScreen() {
     setErrorMessage('');
 
     try {
-      const response = await apiPost<
-        DateEnvelope,
-        { reason: string | null }
-      >(
+      const response = await apiPost<DateEnvelope, DateCancellationRequest>(
         `/dates/${encodeURIComponent(item.id)}/cancel`,
         session.access_token,
         {

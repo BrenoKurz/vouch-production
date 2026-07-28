@@ -26,6 +26,7 @@ import type {
   ConversationEnvelope,
 } from '@/types/conversation';
 import type {
+  DateProposalRequest,
   DateEnvelope,
   Venue,
   VenuesEnvelope,
@@ -142,13 +143,7 @@ export default function ScheduleDateScreen() {
     setErrorMessage('');
 
     try {
-      const response = await apiPost<
-        DateEnvelope,
-        {
-          scheduled_at: string;
-          venue_id: string | null;
-        }
-      >(
+      const response = await apiPost<DateEnvelope, DateProposalRequest>(
         `/conversations/${encodeURIComponent(
           conversation.id,
         )}/dates`,

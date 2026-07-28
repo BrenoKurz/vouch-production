@@ -25,6 +25,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
+  DateRescheduleRequest,
   DateEnvelope,
   Venue,
   VenuesEnvelope,
@@ -140,14 +141,7 @@ export default function RescheduleDateScreen() {
     setErrorMessage('');
 
     try {
-      const response = await apiPost<
-        DateEnvelope,
-        {
-          scheduled_at: string;
-          venue_id: string | null;
-          reason: string | null;
-        }
-      >(
+      const response = await apiPost<DateEnvelope, DateRescheduleRequest>(
         `/dates/${encodeURIComponent(item.id)}/reschedule`,
         session.access_token,
         {

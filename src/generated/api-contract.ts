@@ -1800,8 +1800,8 @@ export interface components {
         VenueDto: {
             id: string;
             name: string;
-            neighborhood?: string | null;
-            address_public?: string | null;
+            neighborhood: string | null;
+            address_public: string | null;
         };
         DateProposalBody: {
             /** Format: date-time */

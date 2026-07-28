@@ -1,76 +1,90 @@
-export type DateState =
-  | 'proposed'
-  | 'confirmed'
-  | 'cancelled'
-  | 'scheduled_time_passed'
-  | 'debrief_pending'
-  | 'completed'
-  | 'disputed';
+import type { paths } from '@/generated/api-contract';
 
-export type Venue = {
-  id: string;
-  name: string;
-  neighborhood: string | null;
-  address_public: string | null;
-};
+type JsonResponse<
+  TOperation,
+  TStatus extends number,
+> = TOperation extends {
+  responses: infer TResponses;
+}
+  ? TStatus extends keyof TResponses
+    ? TResponses[TStatus] extends {
+        content: {
+          'application/json': infer TBody;
+        };
+      }
+      ? TBody
+      : never
+    : never
+  : never;
 
-export type VouchDate = {
-  id: string;
-  conversation_id: string;
-  state: DateState;
-  version: number;
-  proposed_at: string;
-  starts_at: string;
-  venue_id: string | null;
-  venue: Venue | null;
-  my_confirmed: boolean;
-  can_confirm: boolean;
-  reschedule_count: number;
-  can_cancel: boolean;
-  can_reschedule: boolean;
-  cancelled_by_me: boolean;
-  debrief_id: string | null;
-  debrief_state: 'pending' | 'submitted' | 'expired' | null;
-  can_complete_debrief: boolean;
-  counterpart_profile: {
-    first_name: string;
-    age_display: number;
-    neighborhood: string;
-    photos: Array<{
-      id: string;
-      url: string;
-    }>;
-    prompts: Array<{
-      id: string;
-      question: string;
-      answer: string;
-    }>;
-  };
-};
+type JsonRequest<TOperation> =
+  TOperation extends {
+    requestBody: {
+      content: {
+        'application/json': infer TBody;
+      };
+    };
+  }
+    ? TBody
+    : TOperation extends {
+          requestBody?: {
+            content: {
+              'application/json': infer TBody;
+            };
+          };
+        }
+      ? TBody
+      : never;
 
-export type DateEnvelope = {
-  data: VouchDate;
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type DatesEnvelope = JsonResponse<
+  paths['/dates']['get'],
+  200
+>;
 
-export type DatesEnvelope = {
-  data: VouchDate[];
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type DateEnvelope = JsonResponse<
+  paths['/dates/{id}']['get'],
+  200
+>;
 
-export type VenuesEnvelope = {
-  data: Venue[];
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type VenuesEnvelope = JsonResponse<
+  paths['/venues']['get'],
+  200
+>;
+
+export type ProposedDateEnvelope = JsonResponse<
+  paths['/conversations/{id}/dates']['post'],
+  201
+>;
+
+export type ConfirmedDateEnvelope = JsonResponse<
+  paths['/dates/{id}/confirm']['post'],
+  200
+>;
+
+export type CancelledDateEnvelope = JsonResponse<
+  paths['/dates/{id}/cancel']['post'],
+  200
+>;
+
+export type RescheduledDateEnvelope = JsonResponse<
+  paths['/dates/{id}/reschedule']['post'],
+  200
+>;
+
+export type DateProposalRequest = JsonRequest<
+  paths['/conversations/{id}/dates']['post']
+>;
+
+export type DateCancellationRequest = JsonRequest<
+  paths['/dates/{id}/cancel']['post']
+>;
+
+export type DateRescheduleRequest = JsonRequest<
+  paths['/dates/{id}/reschedule']['post']
+>;
+
+export type VouchDate = DateEnvelope['data'];
+
+export type DateState = VouchDate['state'];
+
+export type Venue = VenuesEnvelope['data'][number];
