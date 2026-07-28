@@ -7,6 +7,7 @@ import {
   MemberAccessProvider,
   useMemberAccess,
 } from '@/providers/member-access-provider';
+import { NotificationProvider } from '@/providers/notification-provider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -91,7 +92,9 @@ function RootNavigator() {
 function AppProviders() {
   return (
     <MemberAccessProvider>
-      <RootNavigator />
+      <NotificationProvider>
+        <RootNavigator />
+      </NotificationProvider>
     </MemberAccessProvider>
   );
 }

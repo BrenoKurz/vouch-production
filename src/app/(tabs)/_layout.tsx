@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
+import { useNotifications } from '@/providers/notification-provider';
 
 function tabIcon(
   name: React.ComponentProps<typeof Ionicons>['name'],
@@ -11,6 +12,8 @@ function tabIcon(
 }
 
 export default function TabsLayout() {
+  const { unreadCount } = useNotifications();
+
   return (
     <Tabs
       screenOptions={{
@@ -58,6 +61,27 @@ export default function TabsLayout() {
           title: 'Dates',
           tabBarIcon: ({ color, size }) =>
             tabIcon('calendar-outline', color, size),
+        }}
+      />
+
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Notifications',
+          tabBarBadge:
+            unreadCount > 0
+              ? unreadCount > 99
+                ? '99+'
+                : unreadCount
+              : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#8B4A32',
+            color: '#FFFFFF',
+            fontSize: 10,
+            fontWeight: '800',
+          },
+          tabBarIcon: ({ color, size }) =>
+            tabIcon('notifications-outline', color, size),
         }}
       />
 
