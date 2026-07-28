@@ -15,31 +15,11 @@ import { useMemo, useState } from 'react';
 
 import { ApiError, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
-import {
-  type ApplicationStatus,
-  useMemberAccess,
-} from '@/providers/member-access-provider';
-
-type ApplicationRequest = {
-  first_name: string;
-  date_of_birth: string;
-  email: string;
-  neighborhood: string;
-  referral_code?: string;
-};
-
-type ApplicationResponse = {
-  data: {
-    id: string;
-    status: ApplicationStatus;
-    submitted_at: string;
-  };
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+import { useMemberAccess } from '@/providers/member-access-provider';
+import type {
+  ApplicationRequest,
+  ApplicationResponse,
+} from '@/types/application';
 
 function validDateOfBirth(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -125,7 +105,6 @@ export default function ApplicationStartScreen() {
     const payload: ApplicationRequest = {
       first_name: firstName.trim(),
       date_of_birth: dateOfBirth.trim(),
-      email: email.trim().toLowerCase(),
       neighborhood: neighborhood.trim(),
       ...(referralCode.trim()
         ? { referral_code: referralCode.trim() }

@@ -70,6 +70,18 @@ export interface paths {
                 };
             };
             responses: {
+                /** @description Existing application returned. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ApplicationDto"];
+                            meta: components["schemas"]["ApiEnvelopeMeta"];
+                        };
+                    };
+                };
                 /** @description Application submitted. */
                 201: {
                     headers: {
@@ -83,6 +95,7 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                422: components["responses"]["Conflict"];
                 501: components["responses"]["NotImplemented"];
             };
         };
@@ -1688,15 +1701,12 @@ export interface components {
             first_name: string;
             /** Format: date */
             date_of_birth: string;
-            /** Format: email */
-            email: string;
             neighborhood: string;
             referral_code?: string;
         };
         ApplicationDto: {
             id: string;
-            /** @enum {string} */
-            status: "submitted" | "waitlisted" | "invited" | "declined" | "banned";
+            status: components["schemas"]["ApplicationStatus"];
             /** Format: date-time */
             submitted_at: string;
         };
@@ -1909,6 +1919,8 @@ export interface components {
         SentConversationMessageDto: components["schemas"]["ConversationMessageDto"] & {
             conversation_version: number;
         };
+        /** @enum {string} */
+        ApplicationStatus: "submitted" | "waitlisted" | "invited" | "declined" | "banned";
     };
     responses: {
         /** @description Missing or invalid bearer token. */

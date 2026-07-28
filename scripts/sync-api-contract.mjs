@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const target = resolve(root, "contracts/openapi.json");
-const expectedVersion = "0.8.0";
+const expectedVersion = "0.9.0";
 const defaultLocalSource = resolve(
   root,
   "..",

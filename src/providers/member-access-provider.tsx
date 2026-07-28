@@ -10,46 +10,12 @@ import {
 
 import { ApiError, apiGet } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
+import type {
+  Application,
+  ApplicationEnvelope,
+} from '@/types/application';
 
-export type ApplicationStatus =
-  | 'submitted'
-  | 'waitlisted'
-  | 'invited'
-  | 'declined'
-  | 'banned';
-
-type Application = {
-  id: string;
-  status: ApplicationStatus;
-  submitted_at: string;
-};
-
-type ContractApplicationEnvelope = {
-  data: {
-    id: string;
-    status: ApplicationStatus;
-    submitted_at: string;
-  };
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
-
-type LiveApplicationEnvelope = {
-  data: {
-    id: string;
-    admission_decision?: string | null;
-    created_at?: string;
-    updated_at?: string;
-  };
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type { ApplicationStatus } from '@/types/application';
 
 export type MemberAccessState =
   | { kind: 'loading' }
@@ -74,59 +40,6 @@ type MemberAccessContextValue = {
 const MemberAccessContext =
   createContext<MemberAccessContextValue | null>(null);
 
-function normalizeDecision(
-  decision: string | null | undefined,
-): ApplicationStatus {
-  switch (decision?.toLowerCase()) {
-    case 'approved':
-    case 'invited':
-      return 'invited';
-
-    case 'waitlisted':
-    case 'waitlist':
-      return 'waitlisted';
-
-    case 'declined':
-    case 'rejected':
-    case 'denied':
-      return 'declined';
-
-    case 'banned':
-      return 'banned';
-
-    default:
-      return 'submitted';
-  }
-}
-
-function normalizeApplication(
-  response: ContractApplicationEnvelope | LiveApplicationEnvelope,
-): Application {
-  const data = response.data as
-    | ContractApplicationEnvelope['data']
-    | LiveApplicationEnvelope['data'];
-
-  if ('status' in data && data.status) {
-    return {
-      id: data.id,
-      status: data.status,
-      submitted_at: data.submitted_at,
-    };
-  }
-
-  const liveData =
-    data as LiveApplicationEnvelope['data'];
-
-  return {
-    id: liveData.id,
-    status: normalizeDecision(liveData.admission_decision),
-    submitted_at:
-      liveData.created_at ??
-      liveData.updated_at ??
-      new Date().toISOString(),
-  };
-}
-
 export function MemberAccessProvider({
   children,
 }: PropsWithChildren) {
@@ -144,13 +57,14 @@ export function MemberAccessProvider({
     setState({ kind: 'loading' });
 
     try {
-      const response = await apiGet<
-        ContractApplicationEnvelope | LiveApplicationEnvelope
-      >('/applications/me', session.access_token);
+      const response = await apiGet<ApplicationEnvelope>(
+        '/applications/me',
+        session.access_token,
+      );
 
       setState({
         kind: 'application',
-        application: normalizeApplication(response),
+        application: response.data,
         version: response.meta.version,
         contractVersion: response.meta.contract_version,
       });

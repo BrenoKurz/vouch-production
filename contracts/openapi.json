@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -325,34 +325,34 @@
       },
       "ApplicationSubmit": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "first_name",
           "date_of_birth",
-          "email",
           "neighborhood"
         ],
         "properties": {
           "first_name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "date_of_birth": {
             "type": "string",
             "format": "date"
           },
-          "email": {
-            "type": "string",
-            "format": "email"
-          },
           "neighborhood": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "referral_code": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         }
       },
       "ApplicationDto": {
         "type": "object",
+        "additionalProperties": false,
         "required": [
           "id",
           "status",
@@ -363,14 +363,7 @@
             "type": "string"
           },
           "status": {
-            "type": "string",
-            "enum": [
-              "submitted",
-              "waitlisted",
-              "invited",
-              "declined",
-              "banned"
-            ]
+            "$ref": "#/components/schemas/ApplicationStatus"
           },
           "submitted_at": {
             "type": "string",
@@ -1208,6 +1201,16 @@
             }
           }
         ]
+      },
+      "ApplicationStatus": {
+        "type": "string",
+        "enum": [
+          "submitted",
+          "waitlisted",
+          "invited",
+          "declined",
+          "banned"
+        ]
       }
     },
     "parameters": {
@@ -1329,6 +1332,28 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Existing application returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApplicationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "201": {
             "description": "Application submitted.",
             "content": {
@@ -1353,6 +1378,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "422": {
+            "$ref": "#/components/responses/Conflict"
           },
           "501": {
             "$ref": "#/components/responses/NotImplemented"
