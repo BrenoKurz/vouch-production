@@ -409,11 +409,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            data: {
-                                id?: string;
-                                /** Format: date-time */
-                                sent_at?: string;
-                            };
+                            data: components["schemas"]["SentConversationMessageDto"];
                             meta: components["schemas"]["ApiEnvelopeMeta"];
                         };
                     };
@@ -1706,11 +1702,20 @@ export interface components {
         };
         ConversationDto: {
             id: string;
-            /** @enum {string} */
-            state: "open" | "closed_scheduled" | "closed_passed" | "closed_expired";
+            state: components["schemas"]["ConversationState"];
+            raw_state: string;
             introduction_id: string;
+            version: number;
             /** Format: date-time */
-            last_message_at?: string | null;
+            opened_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            last_message_at: string | null;
+            date_id: string | null;
+            available_actions: components["schemas"]["ConversationAction"][];
+            counterpart_profile: components["schemas"]["IntroductionProfileSnapshot"];
+            messages: components["schemas"]["ConversationMessageDto"][];
         };
         DateDto: {
             id: string;
@@ -1888,6 +1893,21 @@ export interface components {
         };
         MarkAllNotificationsReadDto: {
             updated_count: number;
+        };
+        /** @enum {string} */
+        ConversationState: "open" | "closed_scheduled" | "closed_passed" | "closed_expired";
+        /** @enum {string} */
+        ConversationAction: "propose_date";
+        ConversationMessageDto: {
+            id: string;
+            body: string;
+            /** Format: date-time */
+            sent_at: string;
+            is_mine: boolean;
+            moderation_status: string;
+        };
+        SentConversationMessageDto: components["schemas"]["ConversationMessageDto"] & {
+            conversation_version: number;
         };
     };
     responses: {

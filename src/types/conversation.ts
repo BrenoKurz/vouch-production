@@ -1,63 +1,38 @@
-export type ConversationState =
-  | 'open'
-  | 'closed_scheduled'
-  | 'closed_passed'
-  | 'closed_expired';
+import type { paths } from '@/generated/api-contract';
 
-export type ConversationAction = 'propose_date';
+type JsonResponse<
+  TOperation,
+  TStatus extends number,
+> = TOperation extends {
+  responses: infer TResponses;
+}
+  ? TStatus extends keyof TResponses
+    ? TResponses[TStatus] extends {
+        content: {
+          'application/json': infer TBody;
+        };
+      }
+      ? TBody
+      : never
+    : never
+  : never;
 
-export type ConversationMessage = {
-  id: string;
-  body: string;
-  sent_at: string;
-  is_mine: boolean;
-  moderation_status: string;
-};
+export type ConversationEnvelope = JsonResponse<
+  paths['/conversations/{id}']['get'],
+  200
+>;
 
-export type Conversation = {
-  id: string;
-  state: ConversationState;
-  raw_state: string;
-  introduction_id: string;
-  version: number;
-  opened_at: string;
-  expires_at: string;
-  last_message_at: string | null;
-  date_id: string | null;
-  available_actions: ConversationAction[];
-  counterpart_profile: {
-    first_name: string;
-    age_display: number;
-    neighborhood: string;
-    photos: Array<{
-      id: string;
-      url: string;
-    }>;
-    prompts: Array<{
-      id: string;
-      question: string;
-      answer: string;
-    }>;
-  };
-  messages: ConversationMessage[];
-};
+export type SentMessageEnvelope = JsonResponse<
+  paths['/conversations/{id}/messages']['post'],
+  201
+>;
 
-export type ConversationEnvelope = {
-  data: Conversation;
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type Conversation = ConversationEnvelope['data'];
 
-export type SentMessageEnvelope = {
-  data: ConversationMessage & {
-    conversation_version: number;
-  };
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+export type ConversationState = Conversation['state'];
+
+export type ConversationAction =
+  Conversation['available_actions'][number];
+
+export type ConversationMessage =
+  Conversation['messages'][number];

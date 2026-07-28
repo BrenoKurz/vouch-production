@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -383,28 +383,65 @@
         "required": [
           "id",
           "state",
-          "introduction_id"
+          "raw_state",
+          "introduction_id",
+          "version",
+          "opened_at",
+          "expires_at",
+          "last_message_at",
+          "date_id",
+          "available_actions",
+          "counterpart_profile",
+          "messages"
         ],
         "properties": {
           "id": {
             "type": "string"
           },
           "state": {
-            "type": "string",
-            "enum": [
-              "open",
-              "closed_scheduled",
-              "closed_passed",
-              "closed_expired"
-            ]
+            "$ref": "#/components/schemas/ConversationState"
+          },
+          "raw_state": {
+            "type": "string"
           },
           "introduction_id": {
             "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
           },
           "last_message_at": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "date_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "available_actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationAction"
+            }
+          },
+          "counterpart_profile": {
+            "$ref": "#/components/schemas/IntroductionProfileSnapshot"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationMessageDto"
+            }
           }
         }
       },
@@ -1109,6 +1146,68 @@
             "minimum": 0
           }
         }
+      },
+      "ConversationState": {
+        "type": "string",
+        "enum": [
+          "open",
+          "closed_scheduled",
+          "closed_passed",
+          "closed_expired"
+        ]
+      },
+      "ConversationAction": {
+        "type": "string",
+        "enum": [
+          "propose_date"
+        ]
+      },
+      "ConversationMessageDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "body",
+          "sent_at",
+          "is_mine",
+          "moderation_status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_mine": {
+            "type": "boolean"
+          },
+          "moderation_status": {
+            "type": "string"
+          }
+        }
+      },
+      "SentConversationMessageDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConversationMessageDto"
+          },
+          {
+            "type": "object",
+            "required": [
+              "conversation_version"
+            ],
+            "properties": {
+              "conversation_version": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        ]
       }
     },
     "parameters": {
@@ -1598,7 +1697,9 @@
                 ],
                 "properties": {
                   "body": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
                   }
                 }
               }
@@ -1618,16 +1719,7 @@
                   ],
                   "properties": {
                     "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "sent_at": {
-                          "type": "string",
-                          "format": "date-time"
-                        }
-                      }
+                      "$ref": "#/components/schemas/SentConversationMessageDto"
                     },
                     "meta": {
                       "$ref": "#/components/schemas/ApiEnvelopeMeta"
