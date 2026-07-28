@@ -1,3 +1,8 @@
+import {
+  EXPECTED_CONTRACT_VERSION,
+  getApiEnvelopeMeta,
+} from '@/lib/contract';
+
 export type ApiErrorCode =
   | 'authentication_required'
   | 'forbidden'
@@ -24,6 +29,7 @@ export type ApiErrorCode =
   | 'internal_error'
   | 'not_implemented'
   | 'network_error'
+  | 'contract_mismatch'
   | string;
 
 type ApiErrorEnvelope = {
@@ -142,6 +148,31 @@ async function apiRequest<T>(
       retryable: envelope?.error?.retryable,
       requestId: envelope?.error?.request_id,
       fieldErrors: envelope?.error?.field_errors,
+    });
+  }
+
+  const meta = getApiEnvelopeMeta(body);
+
+  if (!meta) {
+    throw new ApiError({
+      status: response.status,
+      code: 'contract_mismatch',
+      message:
+        'Vouch received an unexpected API response. Please update the app and try again.',
+      retryable: false,
+    });
+  }
+
+  if (
+    meta.contract_version !== EXPECTED_CONTRACT_VERSION
+  ) {
+    throw new ApiError({
+      status: response.status,
+      code: 'contract_mismatch',
+      message:
+        'This version of Vouch is not compatible with the current service. Please update the app.',
+      retryable: false,
+      requestId: meta.request_id,
     });
   }
 

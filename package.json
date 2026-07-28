@@ -46,7 +46,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "contract:sync": "node scripts/sync-api-contract.mjs",
+    "contract:generate": "npm --prefix tools/openapi-codegen exec -- openapi-typescript contracts/openapi.json -o src/generated/api-contract.ts",
+    "contract:check": "npm run contract:generate && git diff --exit-code -- contracts/openapi.json src/generated/api-contract.ts"
   },
   "private": true
 }

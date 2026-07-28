@@ -1,62 +1,47 @@
+import type { paths } from '@/generated/api-contract';
+
+type JsonResponse<
+  TOperation,
+  TStatus extends number,
+> = TOperation extends {
+  responses: infer TResponses;
+}
+  ? TStatus extends keyof TResponses
+    ? TResponses[TStatus] extends {
+        content: {
+          'application/json': infer TBody;
+        };
+      }
+      ? TBody
+      : never
+    : never
+  : never;
+
+export type NotificationsEnvelope = JsonResponse<
+  paths['/notifications']['get'],
+  200
+>;
+
+export type NotificationEnvelope = JsonResponse<
+  paths['/notifications/{id}/read']['post'],
+  200
+>;
+
+export type NotificationUnreadCountEnvelope = JsonResponse<
+  paths['/notifications/unread-count']['get'],
+  200
+>;
+
+export type MarkAllNotificationsReadEnvelope = JsonResponse<
+  paths['/notifications/read-all']['post'],
+  200
+>;
+
+export type MemberNotification =
+  NotificationsEnvelope['data'][number];
+
 export type NotificationType =
-  | 'new_introduction'
-  | 'mutual_match'
-  | 'new_message'
-  | 'date_proposed'
-  | 'date_confirmed'
-  | 'date_cancelled'
-  | 'date_rescheduled'
-  | 'debrief_ready'
-  | 'safety_report_received'
-  | 'safety_case_updated';
+  MemberNotification['notification_type'];
 
 export type NotificationEntityType =
-  | 'introduction'
-  | 'conversation'
-  | 'message'
-  | 'date'
-  | 'debrief'
-  | 'safety_case';
-
-export type MemberNotification = {
-  id: string;
-  notification_type: NotificationType;
-  title: string;
-  body: string;
-  route: string;
-  entity_type: NotificationEntityType;
-  entity_id: string | null;
-  metadata: Record<string, unknown>;
-  read_at: string | null;
-  created_at: string;
-};
-
-export type NotificationEnvelopeMeta = {
-  request_id: string;
-  version: number;
-  contract_version: string;
-};
-
-export type NotificationsEnvelope = {
-  data: MemberNotification[];
-  meta: NotificationEnvelopeMeta;
-};
-
-export type NotificationEnvelope = {
-  data: MemberNotification;
-  meta: NotificationEnvelopeMeta;
-};
-
-export type NotificationUnreadCountEnvelope = {
-  data: {
-    unread_count: number;
-  };
-  meta: NotificationEnvelopeMeta;
-};
-
-export type MarkAllNotificationsReadEnvelope = {
-  data: {
-    updated_count: number;
-  };
-  meta: NotificationEnvelopeMeta;
-};
+  MemberNotification['entity_type'];

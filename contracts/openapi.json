@@ -1,0 +1,3015 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Vouch Member API",
+    "version": "0.7.0",
+    "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
+  },
+  "servers": [
+    {
+      "url": "https://PROJECT_REF.supabase.co/functions/v1/api-v1",
+      "description": "Production gateway (replace PROJECT_REF)"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase user access token."
+      }
+    },
+    "schemas": {
+      "ApiEnvelopeMeta": {
+        "type": "object",
+        "required": [
+          "request_id",
+          "version",
+          "contract_version"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "contract_version": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "request_id"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "authentication_required",
+              "forbidden",
+              "not_found",
+              "validation_failed",
+              "state_conflict",
+              "version_conflict",
+              "idempotency_conflict",
+              "introduction_resolved",
+              "introduction_cap_reached",
+              "response_deadline_passed",
+              "conversation_closed",
+              "message_rejected",
+              "date_slot_unavailable",
+              "venue_unavailable",
+              "debrief_already_submitted",
+              "verification_pending",
+              "verification_rejected",
+              "membership_inactive",
+              "account_paused",
+              "account_suspended",
+              "account_banned",
+              "rate_limited",
+              "internal_error",
+              "not_implemented"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "field_errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "error",
+          "meta"
+        ],
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ApiError"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiEnvelopeMeta"
+          }
+        }
+      },
+      "MemberIntroductionState": {
+        "type": "string",
+        "enum": [
+          "awaiting_your_response",
+          "accepted_waiting",
+          "mutual_ready",
+          "conversation_open",
+          "date_proposed",
+          "date_confirmed",
+          "debrief_pending",
+          "completed",
+          "passed",
+          "timed_out",
+          "kind_closed",
+          "expired",
+          "cancelled"
+        ]
+      },
+      "AvailableAction": {
+        "type": "string",
+        "enum": [
+          "accept",
+          "pass",
+          "open_conversation",
+          "open_scheduler",
+          "complete_debrief"
+        ]
+      },
+      "IntroductionProfileSnapshot": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "age_display",
+          "neighborhood",
+          "photos",
+          "prompts"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "age_display": {
+            "type": "integer"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "prompts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "question",
+                "answer"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "question": {
+                  "type": "string"
+                },
+                "answer": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ApprovedIntroductionNote": {
+        "type": "object",
+        "required": [
+          "body",
+          "approved_by_staff_id",
+          "approved_at"
+        ],
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "approved_by_staff_id": {
+            "type": "string"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MemberIntroductionDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "member_state",
+          "version",
+          "profile_snapshot",
+          "introduction_note",
+          "delivered_at",
+          "response_deadline_at",
+          "conversation_id",
+          "date_id",
+          "slot",
+          "available_actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "member_state": {
+            "$ref": "#/components/schemas/MemberIntroductionState"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "profile_snapshot": {
+            "$ref": "#/components/schemas/IntroductionProfileSnapshot"
+          },
+          "introduction_note": {
+            "$ref": "#/components/schemas/ApprovedIntroductionNote"
+          },
+          "delivered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "response_deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "conversation_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "date_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "slot": {
+            "type": "object",
+            "required": [
+              "occupied",
+              "penalty_release_at"
+            ],
+            "properties": {
+              "occupied": {
+                "type": "boolean"
+              },
+              "penalty_release_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          },
+          "available_actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AvailableAction"
+            }
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "user_id",
+          "contract_version",
+          "api_version"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "contract_version": {
+            "type": "string"
+          },
+          "api_version": {
+            "type": "integer"
+          }
+        }
+      },
+      "ApplicationSubmit": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "date_of_birth",
+          "email",
+          "neighborhood"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "referral_code": {
+            "type": "string"
+          }
+        }
+      },
+      "ApplicationDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "submitted_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "waitlisted",
+              "invited",
+              "declined",
+              "banned"
+            ]
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConversationDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "introduction_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed_scheduled",
+              "closed_passed",
+              "closed_expired"
+            ]
+          },
+          "introduction_id": {
+            "type": "string"
+          },
+          "last_message_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "DateDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "state",
+          "version",
+          "proposed_at",
+          "starts_at",
+          "venue_id",
+          "venue",
+          "my_confirmed",
+          "can_confirm",
+          "counterpart_profile",
+          "debrief_id",
+          "debrief_state",
+          "can_complete_debrief",
+          "reschedule_count",
+          "can_cancel",
+          "can_reschedule",
+          "cancelled_by_me"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "confirmed",
+              "cancelled",
+              "scheduled_time_passed",
+              "debrief_pending",
+              "completed",
+              "disputed"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "proposed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venue_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "venue": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VenueDto"
+              }
+            ],
+            "nullable": true
+          },
+          "my_confirmed": {
+            "type": "boolean"
+          },
+          "can_confirm": {
+            "type": "boolean"
+          },
+          "counterpart_profile": {
+            "$ref": "#/components/schemas/IntroductionProfileSnapshot"
+          },
+          "debrief_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "debrief_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "submitted",
+              "expired"
+            ],
+            "nullable": true
+          },
+          "can_complete_debrief": {
+            "type": "boolean"
+          },
+          "reschedule_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "can_cancel": {
+            "type": "boolean"
+          },
+          "can_reschedule": {
+            "type": "boolean"
+          },
+          "cancelled_by_me": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DebriefDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "date_id",
+          "state",
+          "created_at",
+          "submitted_at",
+          "date_happened",
+          "see_again",
+          "reason_tag",
+          "private_note",
+          "date",
+          "conversation_id",
+          "counterpart_profile"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "submitted",
+              "expired"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "date_happened": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "see_again": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reason_tag": {
+            "type": "string",
+            "nullable": true
+          },
+          "private_note": {
+            "type": "string",
+            "nullable": true
+          },
+          "date": {
+            "$ref": "#/components/schemas/DebriefDateSummaryDto"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "counterpart_profile": {
+            "$ref": "#/components/schemas/IntroductionProfileSnapshot"
+          }
+        }
+      },
+      "UploadCreateRequest": {
+        "type": "object",
+        "required": [
+          "purpose"
+        ],
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "verification_photo",
+              "profile_photo",
+              "intake_voice",
+              "appeal_evidence",
+              "support_attachment",
+              "safety_evidence"
+            ]
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": "integer"
+          },
+          "filename": {
+            "type": "string"
+          }
+        }
+      },
+      "UploadDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "purpose",
+          "bucket",
+          "storage_path",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "bucket": {
+            "type": "string",
+            "enum": [
+              "profile-photos",
+              "uploads"
+            ]
+          },
+          "storage_path": {
+            "type": "string"
+          },
+          "upload_url": {
+            "type": "string"
+          },
+          "upload_token": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed"
+            ]
+          },
+          "content_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "size_bytes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "UploadCompleteRequest": {
+        "type": "object",
+        "properties": {
+          "size_bytes": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      },
+      "VenueDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
+          },
+          "address_public": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DateProposalBody": {
+        "type": "object",
+        "required": [
+          "scheduled_at"
+        ],
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venue_id": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "DebriefDateSummaryDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "state",
+          "starts_at",
+          "venue_id",
+          "venue"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "confirmed",
+              "cancelled",
+              "scheduled_time_passed",
+              "debrief_pending",
+              "completed",
+              "disputed"
+            ]
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venue_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "venue": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VenueDto"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "DebriefSubmissionBody": {
+        "type": "object",
+        "required": [
+          "date_happened"
+        ],
+        "properties": {
+          "date_happened": {
+            "type": "boolean"
+          },
+          "see_again": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reason_tag": {
+            "type": "string",
+            "enum": [
+              "chemistry_not_there",
+              "different_values",
+              "timing_or_lifestyle",
+              "communication",
+              "date_did_not_happen",
+              "safety_concern",
+              "other"
+            ],
+            "nullable": true
+          },
+          "private_note": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true
+          }
+        }
+      },
+      "DateCancellationBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          }
+        }
+      },
+      "DateRescheduleBody": {
+        "type": "object",
+        "required": [
+          "scheduled_at"
+        ],
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "venue_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          }
+        }
+      },
+      "SafetyEvidenceDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "upload_id",
+          "content_type",
+          "size_bytes",
+          "created_at",
+          "download_url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "upload_id": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "size_bytes": {
+            "type": "integer",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "download_url": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "MemberSafetyCaseDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "date_id",
+          "category",
+          "narrative",
+          "immediate_danger",
+          "priority",
+          "state",
+          "resolution",
+          "resolved_at",
+          "version",
+          "created_at",
+          "updated_at",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "date_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "harassment",
+              "coercion",
+              "threats",
+              "physical_safety",
+              "sexual_misconduct",
+              "fraud",
+              "impersonation",
+              "other"
+            ]
+          },
+          "narrative": {
+            "type": "string"
+          },
+          "immediate_danger": {
+            "type": "boolean"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "high",
+              "urgent"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "assigned",
+              "investigating",
+              "resolved",
+              "dismissed"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "dismissed",
+              "no_action",
+              "warning",
+              "account_paused",
+              "account_suspended",
+              "account_banned"
+            ],
+            "nullable": true
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "version": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SafetyEvidenceDto"
+            }
+          }
+        }
+      },
+      "CreateSafetyCaseBody": {
+        "type": "object",
+        "required": [
+          "conversation_id",
+          "category",
+          "narrative"
+        ],
+        "properties": {
+          "conversation_id": {
+            "type": "string"
+          },
+          "date_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "harassment",
+              "coercion",
+              "threats",
+              "physical_safety",
+              "sexual_misconduct",
+              "fraud",
+              "impersonation",
+              "other"
+            ]
+          },
+          "narrative": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 5000
+          },
+          "immediate_danger": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "AttachSafetyEvidenceBody": {
+        "type": "object",
+        "required": [
+          "upload_id"
+        ],
+        "properties": {
+          "upload_id": {
+            "type": "string"
+          }
+        }
+      },
+      "StaffSafetyCaseDto": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "MemberNotificationDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "notification_type",
+          "title",
+          "body",
+          "route",
+          "entity_type",
+          "entity_id",
+          "metadata",
+          "read_at",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "notification_type": {
+            "type": "string",
+            "enum": [
+              "new_introduction",
+              "mutual_match",
+              "new_message",
+              "date_proposed",
+              "date_confirmed",
+              "date_cancelled",
+              "date_rescheduled",
+              "debrief_ready",
+              "safety_report_received",
+              "safety_case_updated"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "entity_type": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "read_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationUnreadCountDto": {
+        "type": "object",
+        "required": [
+          "unread_count"
+        ],
+        "properties": {
+          "unread_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "MarkAllNotificationsReadDto": {
+        "type": "object",
+        "required": [
+          "updated_count"
+        ],
+        "properties": {
+          "updated_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "in": "header",
+        "name": "X-Idempotency-Key",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict."
+      },
+      "IfMatchVersion": {
+        "in": "header",
+        "name": "If-Match",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Integer resource version for optimistic concurrency (matches the `version` field of the target resource, optionally quoted as an ETag). Stale value returns 409 version_conflict."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found (or not visible under RLS).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "State or version conflict.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NotImplemented": {
+        "description": "Route is defined by contract but not yet implemented on the server.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden."
+      },
+      "ValidationFailed": {
+        "description": "Validation failed."
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Gateway health check (authenticated).",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/HealthResponse"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/applications": {
+      "post": {
+        "summary": "Submit a membership application.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationSubmit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Application submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApplicationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/applications/me": {
+      "get": {
+        "summary": "Current caller's application status.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApplicationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/introductions": {
+      "get": {
+        "summary": "List introductions visible to the caller.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MemberIntroductionDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/introductions/{id}": {
+      "get": {
+        "summary": "Fetch a single introduction.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberIntroductionDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/introductions/{id}/accept": {
+      "post": {
+        "summary": "Accept an introduction.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberIntroductionDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/introductions/{id}/pass": {
+      "post": {
+        "summary": "Pass on an introduction. Reasons are private to the passer.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason_codes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberIntroductionDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/conversations/{id}": {
+      "get": {
+        "summary": "Fetch conversation with messages the caller may see.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ConversationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/conversations/{id}/messages": {
+      "post": {
+        "summary": "Send a message in a conversation.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "body"
+                ],
+                "properties": {
+                  "body": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "sent_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/dates/{id}": {
+      "get": {
+        "summary": "Fetch a date.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DateDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/dates/{id}/confirm": {
+      "post": {
+        "summary": "Confirm a proposed date.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Confirmed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DateDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
+          }
+        }
+      }
+    },
+    "/debriefs/pending": {
+      "get": {
+        "summary": "List private debriefs the caller owes.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DebriefDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/debriefs/{id}": {
+      "get": {
+        "summary": "Fetch the caller's private debrief.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DebriefDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit the caller's private debrief.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DebriefSubmissionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DebriefDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/uploads": {
+      "post": {
+        "summary": "Reserve an upload slot and return a signed upload URL.",
+        "description": "Creates a `public.uploads` row (status=pending), assigns an owner-scoped storage path `<auth.uid()>/<upload_id>-<filename>` in the appropriate private bucket (`profile-photos` for `profile_photo`, `uploads` otherwise) and returns a short-lived signed upload URL. Clients PUT the file directly to `upload_url` and then call POST `/uploads/{id}/complete`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload reserved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UploadDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/uploads/{id}/complete": {
+      "post": {
+        "summary": "Mark an upload complete after the client PUT succeeds.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCompleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/UploadDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "410": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/uploads/{id}": {
+      "delete": {
+        "summary": "Delete a caller-owned upload (row + storage object).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "deleted": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/dates": {
+      "get": {
+        "summary": "List dates visible to the caller.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DateDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/venues": {
+      "get": {
+        "summary": "List active Vouch venues.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/VenueDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/conversations/{id}/dates": {
+      "post": {
+        "summary": "Propose a date in an open conversation.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateProposalBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Proposed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DateDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/dates/{id}/cancel": {
+      "post": {
+        "summary": "Cancel an active date plan.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateCancellationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DateDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/dates/{id}/reschedule": {
+      "post": {
+        "summary": "Propose a replacement date and time.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DateRescheduleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rescheduled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/DateDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/safety-cases": {
+      "get": {
+        "summary": "List the caller's private safety cases.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MemberSafetyCaseDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit a private safety report.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSafetyCaseBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/safety-cases/{id}": {
+      "get": {
+        "summary": "Fetch the caller's private safety case.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/safety-cases/{id}/evidence": {
+      "post": {
+        "summary": "Attach a completed private evidence upload.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachSafetyEvidenceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Attached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/staff/safety-cases": {
+      "get": {
+        "summary": "List the trust-and-safety review queue.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "assigned",
+                "investigating",
+                "resolved",
+                "dismissed"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StaffSafetyCaseDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/staff/safety-cases/{id}": {
+      "get": {
+        "summary": "Fetch a private safety case for staff review.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StaffSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/staff/safety-cases/{id}/assign": {
+      "post": {
+        "summary": "Assign the safety case to the current staff user.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StaffSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/staff/safety-cases/{id}/notes": {
+      "post": {
+        "summary": "Add a private staff note.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StaffSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "note"
+                ],
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/staff/safety-cases/{id}/resolve": {
+      "post": {
+        "summary": "Resolve the safety case and optionally apply an account action.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/StaffSafetyCaseDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resolution"
+                ],
+                "properties": {
+                  "resolution": {
+                    "type": "string",
+                    "enum": [
+                      "dismissed",
+                      "no_action",
+                      "warning",
+                      "account_paused",
+                      "account_suspended",
+                      "account_banned"
+                    ]
+                  },
+                  "resolution_summary": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "summary": "List the caller's in-app notifications.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MemberNotificationDto"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "summary": "Get the caller's unread notification count.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/NotificationUnreadCountDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "post": {
+        "summary": "Mark one notification as read.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberNotificationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "post": {
+        "summary": "Mark all caller notifications as read.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MarkAllNotificationsReadDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
