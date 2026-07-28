@@ -1,74 +1,46 @@
+import type { paths } from '@/generated/api-contract';
+
+type JsonResponse<
+  TOperation,
+  TStatus extends number,
+> = TOperation extends {
+  responses: infer TResponses;
+}
+  ? TStatus extends keyof TResponses
+    ? TResponses[TStatus] extends {
+        content: {
+          'application/json': infer TBody;
+        };
+      }
+      ? TBody
+      : never
+    : never
+  : never;
+
+export type IntroductionsEnvelope = JsonResponse<
+  paths['/introductions']['get'],
+  200
+>;
+
+export type IntroductionEnvelope = JsonResponse<
+  paths['/introductions/{id}']['get'],
+  200
+>;
+
+export type AcceptIntroductionEnvelope = JsonResponse<
+  paths['/introductions/{id}/accept']['post'],
+  200
+>;
+
+export type PassIntroductionEnvelope = JsonResponse<
+  paths['/introductions/{id}/pass']['post'],
+  200
+>;
+
+export type Introduction = IntroductionEnvelope['data'];
+
 export type IntroductionState =
-  | 'awaiting_your_response'
-  | 'accepted_waiting'
-  | 'mutual_ready'
-  | 'conversation_open'
-  | 'date_proposed'
-  | 'date_confirmed'
-  | 'debrief_pending'
-  | 'completed'
-  | 'passed'
-  | 'timed_out'
-  | 'kind_closed'
-  | 'expired'
-  | 'cancelled';
+  Introduction['member_state'];
 
 export type IntroductionAction =
-  | 'accept'
-  | 'pass'
-  | 'open_conversation'
-  | 'open_scheduler'
-  | 'complete_debrief';
-
-export type Introduction = {
-  id: string;
-  member_state: IntroductionState;
-  version: number;
-  profile_snapshot: {
-    first_name: string;
-    age_display: number;
-    neighborhood: string;
-    photos: Array<{
-      id: string;
-      url: string;
-    }>;
-    prompts: Array<{
-      id: string;
-      question: string;
-      answer: string;
-    }>;
-  };
-  introduction_note: {
-    body: string;
-    approved_by_staff_id: string;
-    approved_at: string;
-  };
-  delivered_at: string;
-  response_deadline_at: string | null;
-  conversation_id: string | null;
-  date_id: string | null;
-  slot: {
-    occupied: boolean;
-    penalty_release_at: string | null;
-  };
-  available_actions: IntroductionAction[];
-};
-
-export type IntroductionsEnvelope = {
-  data: Introduction[];
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
-
-
-export type IntroductionEnvelope = {
-  data: Introduction;
-  meta: {
-    request_id: string;
-    version: number;
-    contract_version: string;
-  };
-};
+  Introduction['available_actions'][number];
