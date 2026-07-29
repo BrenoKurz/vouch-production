@@ -1625,6 +1625,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated member profile */
+        get: operations["getMyMemberProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1921,6 +1938,53 @@ export interface components {
         };
         /** @enum {string} */
         ApplicationStatus: "submitted" | "waitlisted" | "invited" | "declined" | "banned";
+        /** @enum {string} */
+        ProfileVerificationState: "not_started" | "pending" | "verified" | "rejected";
+        /** @enum {string} */
+        ProfileIntakeState: "not_started" | "in_progress" | "completed";
+        MemberProfilePrompt: {
+            id: string;
+            question: string;
+            answer: string;
+        };
+        MemberProfileDto: {
+            id: string;
+            status: components["schemas"]["MemberStatus"];
+            first_name: string;
+            date_of_birth: string | null;
+            age_display: number | null;
+            gender_identity: string | null;
+            orientation: string | null;
+            seeking: string | null;
+            relationship_intent: string | null;
+            neighborhood: string | null;
+            dating_radius_miles: number | null;
+            kids_status: string | null;
+            kids_preference: string | null;
+            lifestyle_facts: {
+                [key: string]: unknown;
+            };
+            visibility_settings: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            verified_at: string | null;
+            verification_state: components["schemas"]["ProfileVerificationState"];
+            prompts: components["schemas"]["MemberProfilePrompt"][];
+            field_visibility: {
+                [key: string]: unknown;
+            };
+            intake: {
+                state: components["schemas"]["ProfileIntakeState"];
+                member_visible_summary: string | null;
+                /** Format: date-time */
+                member_reviewed_at: string | null;
+                member_approved_version: number | null;
+            };
+            version: number;
+        };
+        /** @enum {string} */
+        MemberStatus: "applicant" | "waitlisted" | "invited" | "verification_pending" | "intake_pending" | "member_review_pending" | "active" | "paused" | "graduated" | "suspended" | "banned";
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -1985,4 +2049,32 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    getMyMemberProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MemberProfileDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Member profile not found. */
+            404: components["responses"]["NotFound"];
+            501: components["responses"]["NotImplemented"];
+        };
+    };
+}

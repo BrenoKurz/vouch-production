@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -1211,6 +1211,195 @@
           "waitlisted",
           "invited",
           "declined",
+          "banned"
+        ]
+      },
+      "ProfileVerificationState": {
+        "type": "string",
+        "enum": [
+          "not_started",
+          "pending",
+          "verified",
+          "rejected"
+        ]
+      },
+      "ProfileIntakeState": {
+        "type": "string",
+        "enum": [
+          "not_started",
+          "in_progress",
+          "completed"
+        ]
+      },
+      "MemberProfilePrompt": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "question",
+          "answer"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      },
+      "MemberProfileDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "first_name",
+          "date_of_birth",
+          "age_display",
+          "gender_identity",
+          "orientation",
+          "seeking",
+          "relationship_intent",
+          "neighborhood",
+          "dating_radius_miles",
+          "kids_status",
+          "kids_preference",
+          "lifestyle_facts",
+          "visibility_settings",
+          "verified_at",
+          "verification_state",
+          "prompts",
+          "field_visibility",
+          "intake",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MemberStatus"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "nullable": true
+          },
+          "age_display": {
+            "type": "integer",
+            "nullable": true
+          },
+          "gender_identity": {
+            "type": "string",
+            "nullable": true
+          },
+          "orientation": {
+            "type": "string",
+            "nullable": true
+          },
+          "seeking": {
+            "type": "string",
+            "nullable": true
+          },
+          "relationship_intent": {
+            "type": "string",
+            "nullable": true
+          },
+          "neighborhood": {
+            "type": "string",
+            "nullable": true
+          },
+          "dating_radius_miles": {
+            "type": "integer",
+            "nullable": true
+          },
+          "kids_status": {
+            "type": "string",
+            "nullable": true
+          },
+          "kids_preference": {
+            "type": "string",
+            "nullable": true
+          },
+          "lifestyle_facts": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "visibility_settings": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "verification_state": {
+            "$ref": "#/components/schemas/ProfileVerificationState"
+          },
+          "prompts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberProfilePrompt"
+            }
+          },
+          "field_visibility": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "intake": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "member_visible_summary",
+              "member_reviewed_at",
+              "member_approved_version"
+            ],
+            "properties": {
+              "state": {
+                "$ref": "#/components/schemas/ProfileIntakeState"
+              },
+              "member_visible_summary": {
+                "type": "string",
+                "nullable": true
+              },
+              "member_reviewed_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "member_approved_version": {
+                "type": "integer",
+                "nullable": true
+              }
+            }
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "MemberStatus": {
+        "type": "string",
+        "enum": [
+          "applicant",
+          "waitlisted",
+          "invited",
+          "verification_pending",
+          "intake_pending",
+          "member_review_pending",
+          "active",
+          "paused",
+          "graduated",
+          "suspended",
           "banned"
         ]
       }
@@ -3129,6 +3318,54 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/members/me/profile": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Get the authenticated member profile",
+        "operationId": "getMyMemberProfile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/MemberProfileDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound",
+            "description": "Member profile not found."
+          },
+          "501": {
+            "$ref": "#/components/responses/NotImplemented"
           }
         }
       }
