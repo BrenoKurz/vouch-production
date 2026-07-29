@@ -76,6 +76,7 @@ export default function SafetyCaseDetailScreen() {
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [item, setItem] = useState<MemberSafetyCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,7 +91,7 @@ export default function SafetyCaseDetailScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This private report could not be opened.');
       setIsLoading(false);
       return;
@@ -102,7 +103,7 @@ export default function SafetyCaseDetailScreen() {
     try {
       const response = await apiGet<SafetyCaseEnvelope>(
         `/safety-cases/${encodeURIComponent(id)}`,
-        session.access_token,
+        accessToken,
       );
       setItem(response.data);
     } catch (error) {
@@ -122,7 +123,7 @@ export default function SafetyCaseDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -131,7 +132,7 @@ export default function SafetyCaseDetailScreen() {
   );
 
   async function uploadEvidence(asset: LocalEvidenceAsset) {
-    if (!item || !session?.access_token || isUploading || closed) {
+    if (!item || !accessToken || isUploading || closed) {
       return;
     }
 
@@ -147,7 +148,7 @@ export default function SafetyCaseDetailScreen() {
       const response = await attachSafetyEvidence({
         caseId: item.id,
         asset,
-        accessToken: session.access_token,
+        accessToken,
       });
       setItem(response.data);
       Alert.alert(

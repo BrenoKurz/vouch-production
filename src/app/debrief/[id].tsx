@@ -36,10 +36,10 @@ import type {
   DebriefSubmission,
 } from '@/types/debrief';
 
-const reasonOptions: Array<{
+const reasonOptions: {
   value: DebriefReasonTag;
   label: string;
-}> = [
+}[] = [
   { value: 'chemistry_not_there', label: 'The chemistry was not there' },
   { value: 'different_values', label: 'Different values or priorities' },
   { value: 'timing_or_lifestyle', label: 'Timing or lifestyle mismatch' },
@@ -66,6 +66,7 @@ export default function DebriefScreen() {
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [item, setItem] = useState<Debrief | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function DebriefScreen() {
   }, [dateHappened, seeAgain]);
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This private debrief could not be opened.');
       setIsLoading(false);
       return;
@@ -95,7 +96,7 @@ export default function DebriefScreen() {
     try {
       const response = await apiGet<DebriefEnvelope>(
         `/debriefs/${encodeURIComponent(id)}`,
-        session.access_token,
+        accessToken,
       );
 
       setItem(response.data);
@@ -121,7 +122,7 @@ export default function DebriefScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -176,7 +177,7 @@ export default function DebriefScreen() {
   async function submit() {
     if (
       !item ||
-      !session?.access_token ||
+      !accessToken ||
       isSubmitting ||
       !canSubmit ||
       dateHappened === null
@@ -210,7 +211,7 @@ export default function DebriefScreen() {
         DebriefSubmission
       >(
         `/debriefs/${encodeURIComponent(item.id)}`,
-        session.access_token,
+        accessToken,
         body,
         Crypto.randomUUID(),
       );

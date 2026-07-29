@@ -34,6 +34,7 @@ export default function CancelDateScreen() {
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [item, setItem] = useState<VouchDate | null>(null);
   const [reason, setReason] = useState('');
@@ -42,7 +43,7 @@ export default function CancelDateScreen() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This date could not be opened.');
       setIsLoading(false);
       return;
@@ -54,7 +55,7 @@ export default function CancelDateScreen() {
     try {
       const response = await apiGet<DateEnvelope>(
         `/dates/${encodeURIComponent(id)}`,
-        session.access_token,
+        accessToken,
       );
       setItem(response.data);
     } catch (error) {
@@ -75,7 +76,7 @@ export default function CancelDateScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,7 +85,7 @@ export default function CancelDateScreen() {
   );
 
   async function submit() {
-    if (!item || !session?.access_token || isSubmitting) return;
+    if (!item || !accessToken || isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage('');
@@ -92,7 +93,7 @@ export default function CancelDateScreen() {
     try {
       const response = await apiPost<DateEnvelope, DateCancellationRequest>(
         `/dates/${encodeURIComponent(item.id)}/cancel`,
-        session.access_token,
+        accessToken,
         {
           reason: reason.trim() || null,
         },

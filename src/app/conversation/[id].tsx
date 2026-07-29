@@ -63,6 +63,7 @@ export default function ConversationScreen() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const listRef = useRef<FlatList<ConversationMessage>>(null);
 
   const [conversation, setConversation] =
@@ -86,7 +87,7 @@ export default function ConversationScreen() {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' | 'poll' = 'refresh') => {
-      if (!id || !session?.access_token) {
+      if (!id || !accessToken) {
         setErrorMessage('This conversation could not be opened.');
         setIsLoading(false);
         return;
@@ -99,7 +100,7 @@ export default function ConversationScreen() {
       try {
         const response = await apiGet<ConversationEnvelope>(
           `/conversations/${encodeURIComponent(id)}`,
-          session.access_token,
+          accessToken,
         );
 
         setConversation(response.data);
@@ -125,7 +126,7 @@ export default function ConversationScreen() {
         if (mode === 'refresh') setIsRefreshing(false);
       }
     },
-    [id, session?.access_token, signOut],
+    [accessToken, id, signOut],
   );
 
   useFocusEffect(
@@ -154,7 +155,7 @@ export default function ConversationScreen() {
 
     if (
       !conversation ||
-      !session?.access_token ||
+      !accessToken ||
       !body ||
       isSending ||
       !isOpen
@@ -173,7 +174,7 @@ export default function ConversationScreen() {
         `/conversations/${encodeURIComponent(
           conversation.id,
         )}/messages`,
-        session.access_token,
+        accessToken,
         { body },
         Crypto.randomUUID(),
         { 'If-Match': String(conversation.version) },

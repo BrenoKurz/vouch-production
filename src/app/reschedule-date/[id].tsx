@@ -55,6 +55,7 @@ export default function RescheduleDateScreen() {
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [item, setItem] = useState<VouchDate | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -74,7 +75,7 @@ export default function RescheduleDateScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This date could not be opened.');
       setIsLoading(false);
       return;
@@ -87,11 +88,11 @@ export default function RescheduleDateScreen() {
       const [dateResponse, venuesResponse] = await Promise.all([
         apiGet<DateEnvelope>(
           `/dates/${encodeURIComponent(id)}`,
-          session.access_token,
+          accessToken,
         ),
         apiGet<VenuesEnvelope>(
           '/venues',
-          session.access_token,
+          accessToken,
         ),
       ]);
 
@@ -121,7 +122,7 @@ export default function RescheduleDateScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -130,7 +131,7 @@ export default function RescheduleDateScreen() {
   );
 
   async function submit() {
-    if (!item || !session?.access_token || isSubmitting) return;
+    if (!item || !accessToken || isSubmitting) return;
 
     if (scheduledAt.getTime() <= Date.now()) {
       setErrorMessage('Choose a date and time in the future.');
@@ -143,7 +144,7 @@ export default function RescheduleDateScreen() {
     try {
       const response = await apiPost<DateEnvelope, DateRescheduleRequest>(
         `/dates/${encodeURIComponent(item.id)}/reschedule`,
-        session.access_token,
+        accessToken,
         {
           scheduled_at: scheduledAt.toISOString(),
           venue_id: selectedVenueId,

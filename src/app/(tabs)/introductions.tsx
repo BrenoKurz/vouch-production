@@ -59,6 +59,7 @@ function formatDeadline(value: string | null) {
 
 export default function IntroductionsScreen() {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [items, setItems] = useState<Introduction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -79,15 +80,19 @@ export default function IntroductionsScreen() {
 
   const load = useCallback(
     async (refreshing = false) => {
-      if (!session?.access_token) return;
+      if (!accessToken) return;
 
-      refreshing ? setIsRefreshing(true) : setIsLoading(true);
+      if (refreshing) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       setErrorMessage('');
 
       try {
         const response = await apiGet<IntroductionsEnvelope>(
           '/introductions',
-          session.access_token,
+          accessToken,
         );
 
         setItems(response.data);
@@ -111,7 +116,7 @@ export default function IntroductionsScreen() {
         setIsRefreshing(false);
       }
     },
-    [session?.access_token, signOut],
+    [accessToken, signOut],
   );
 
   useFocusEffect(

@@ -51,6 +51,7 @@ function formatDateTime(value: string) {
 
 export default function DatesScreen() {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [items, setItems] = useState<VouchDate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -58,7 +59,7 @@ export default function DatesScreen() {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
-      if (!session?.access_token) return;
+      if (!accessToken) return;
 
       if (mode === 'initial') setIsLoading(true);
       if (mode === 'refresh') setIsRefreshing(true);
@@ -67,7 +68,7 @@ export default function DatesScreen() {
       try {
         const response = await apiGet<DatesEnvelope>(
           '/dates',
-          session.access_token,
+          accessToken,
         );
         setItems(response.data);
       } catch (error) {
@@ -90,7 +91,7 @@ export default function DatesScreen() {
         if (mode === 'refresh') setIsRefreshing(false);
       }
     },
-    [session?.access_token, signOut],
+    [accessToken, signOut],
   );
 
   useFocusEffect(

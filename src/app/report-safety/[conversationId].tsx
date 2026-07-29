@@ -34,11 +34,11 @@ import type {
   SafetyCategory,
 } from '@/types/safety';
 
-const categories: Array<{
+const categories: {
   value: SafetyCategory;
   label: string;
   description: string;
-}> = [
+}[] = [
   {
     value: 'harassment',
     label: 'Harassment',
@@ -94,6 +94,7 @@ export default function ReportSafetyScreen() {
     : params.dateId;
 
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [conversation, setConversation] =
     useState<Conversation | null>(null);
@@ -115,7 +116,7 @@ export default function ReportSafetyScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!conversationId || !session?.access_token) {
+    if (!conversationId || !accessToken) {
       setErrorMessage('This connection could not be opened.');
       setIsLoading(false);
       return;
@@ -127,7 +128,7 @@ export default function ReportSafetyScreen() {
     try {
       const response = await apiGet<ConversationEnvelope>(
         `/conversations/${encodeURIComponent(conversationId)}`,
-        session.access_token,
+        accessToken,
       );
       setConversation(response.data);
     } catch (error) {
@@ -148,7 +149,7 @@ export default function ReportSafetyScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, session?.access_token, signOut]);
+  }, [accessToken, conversationId, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -159,7 +160,7 @@ export default function ReportSafetyScreen() {
   async function submit() {
     if (
       !conversation ||
-      !session?.access_token ||
+      !accessToken ||
       !category ||
       !canSubmit
     ) {
@@ -186,7 +187,7 @@ export default function ReportSafetyScreen() {
         CreateSafetyCaseBody
       >(
         '/safety-cases',
-        session.access_token,
+        accessToken,
         body,
         Crypto.randomUUID(),
       );

@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import {
   type Href,
   router,
+  useFocusEffect,
   useLocalSearchParams,
 } from 'expo-router';
 import {
@@ -17,7 +18,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
@@ -58,6 +59,7 @@ export default function ScheduleDateScreen() {
     : params.conversationId;
 
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [conversation, setConversation] =
     useState<Conversation | null>(null);
@@ -77,7 +79,7 @@ export default function ScheduleDateScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!conversationId || !session?.access_token) {
+    if (!conversationId || !accessToken) {
       setErrorMessage('This conversation could not be opened.');
       setIsLoading(false);
       return;
@@ -91,11 +93,11 @@ export default function ScheduleDateScreen() {
         await Promise.all([
           apiGet<ConversationEnvelope>(
             `/conversations/${encodeURIComponent(conversationId)}`,
-            session.access_token,
+            accessToken,
           ),
           apiGet<VenuesEnvelope>(
             '/venues',
-            session.access_token,
+            accessToken,
           ),
         ]);
 
@@ -119,16 +121,18 @@ export default function ScheduleDateScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [conversationId, session?.access_token, signOut]);
+  }, [accessToken, conversationId, signOut]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   async function submit() {
     if (
       !conversation ||
-      !session?.access_token ||
+      !accessToken ||
       isSubmitting
     ) {
       return;
@@ -147,7 +151,7 @@ export default function ScheduleDateScreen() {
         `/conversations/${encodeURIComponent(
           conversation.id,
         )}/dates`,
-        session.access_token,
+        accessToken,
         {
           scheduled_at: scheduledAt.toISOString(),
           venue_id: selectedVenueId,

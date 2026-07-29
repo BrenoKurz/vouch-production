@@ -56,6 +56,7 @@ function formatDate(value: string) {
 
 export default function SafetyCasesScreen() {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [items, setItems] = useState<MemberSafetyCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -63,7 +64,7 @@ export default function SafetyCasesScreen() {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' = 'initial') => {
-      if (!session?.access_token) return;
+      if (!accessToken) return;
 
       if (mode === 'initial') setIsLoading(true);
       if (mode === 'refresh') setIsRefreshing(true);
@@ -72,7 +73,7 @@ export default function SafetyCasesScreen() {
       try {
         const response = await apiGet<SafetyCasesEnvelope>(
           '/safety-cases',
-          session.access_token,
+          accessToken,
         );
         setItems(response.data);
       } catch (error) {
@@ -94,7 +95,7 @@ export default function SafetyCasesScreen() {
         if (mode === 'refresh') setIsRefreshing(false);
       }
     },
-    [session?.access_token, signOut],
+    [accessToken, signOut],
   );
 
   useFocusEffect(

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Stack, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -108,9 +108,11 @@ export default function EditProfileScreen() {
     }
   }, [populateForm, session?.access_token]);
 
-  useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfile();
+    }, [loadProfile]),
+  );
 
   function updatePrompt(
     index: number,

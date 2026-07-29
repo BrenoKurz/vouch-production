@@ -32,13 +32,12 @@ export function NotificationProvider({
   children,
 }: PropsWithChildren) {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
 
   const refreshUnreadCount = useCallback(async () => {
-    const accessToken = session?.access_token;
-
     if (!accessToken) {
       setUnreadCount(0);
       setIsLoading(false);
@@ -69,10 +68,20 @@ export function NotificationProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [session?.access_token, signOut]);
+  }, [accessToken, signOut]);
 
   useEffect(() => {
-    void refreshUnreadCount();
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void refreshUnreadCount();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshUnreadCount]);
 
   useEffect(() => {

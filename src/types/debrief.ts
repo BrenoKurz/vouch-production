@@ -34,15 +34,15 @@ export type Debrief = {
     first_name: string;
     age_display: number;
     neighborhood: string;
-    photos: Array<{
+    photos: {
       id: string;
       url: string;
-    }>;
-    prompts: Array<{
+    }[];
+    prompts: {
       id: string;
       question: string;
       answer: string;
-    }>;
+    }[];
   };
 };
 

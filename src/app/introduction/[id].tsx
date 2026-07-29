@@ -66,6 +66,7 @@ export default function IntroductionDetailScreen() {
   const photoWidth = Math.max(width - 32, 1);
 
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [item, setItem] = useState<Introduction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pending, setPending] = useState<'accept' | 'pass' | null>(null);
@@ -78,7 +79,7 @@ export default function IntroductionDetailScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This introduction could not be opened.');
       setIsLoading(false);
       return;
@@ -90,7 +91,7 @@ export default function IntroductionDetailScreen() {
     try {
       const response = await apiGet<IntroductionEnvelope>(
         `/introductions/${encodeURIComponent(id)}`,
-        session.access_token,
+        accessToken,
       );
       setItem(response.data);
     } catch (error) {
@@ -111,7 +112,7 @@ export default function IntroductionDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -120,7 +121,7 @@ export default function IntroductionDetailScreen() {
   );
 
   async function respond(action: 'accept' | 'pass') {
-    if (!item || !session?.access_token || pending) return;
+    if (!item || !accessToken || pending) return;
 
     setPending(action);
     setErrorMessage('');
@@ -131,7 +132,7 @@ export default function IntroductionDetailScreen() {
         Record<string, never> | undefined
       >(
         `/introductions/${encodeURIComponent(item.id)}/${action}`,
-        session.access_token,
+        accessToken,
         action === 'pass' ? {} : undefined,
         Crypto.randomUUID(),
         { 'If-Match': String(item.version) },

@@ -44,12 +44,13 @@ export function MemberAccessProvider({
   children,
 }: PropsWithChildren) {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
   const [state, setState] = useState<MemberAccessState>({
     kind: 'loading',
   });
 
   const refresh = useCallback(async () => {
-    if (!session?.access_token) {
+    if (!accessToken) {
       setState({ kind: 'loading' });
       return;
     }
@@ -59,7 +60,7 @@ export function MemberAccessProvider({
     try {
       const response = await apiGet<ApplicationEnvelope>(
         '/applications/me',
-        session.access_token,
+        accessToken,
       );
 
       setState({
@@ -97,16 +98,21 @@ export function MemberAccessProvider({
         retryable: true,
       });
     }
-  }, [session?.access_token, signOut]);
+  }, [accessToken, signOut]);
 
   useEffect(() => {
-    if (!session) {
-      setState({ kind: 'loading' });
-      return;
-    }
+    let cancelled = false;
 
-    void refresh();
-  }, [session, refresh]);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void refresh();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
 
   const value = useMemo(
     () => ({ state, refresh }),

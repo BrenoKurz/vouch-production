@@ -65,6 +65,7 @@ export default function DateDetailScreen() {
   }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token;
 
   const [item, setItem] = useState<VouchDate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function DateDetailScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!id || !session?.access_token) {
+    if (!id || !accessToken) {
       setErrorMessage('This date could not be opened.');
       setIsLoading(false);
       return;
@@ -95,7 +96,7 @@ export default function DateDetailScreen() {
     try {
       const response = await apiGet<DateEnvelope>(
         `/dates/${encodeURIComponent(id)}`,
-        session.access_token,
+        accessToken,
       );
       setItem(response.data);
     } catch (error) {
@@ -116,7 +117,7 @@ export default function DateDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, session?.access_token, signOut]);
+  }, [accessToken, id, signOut]);
 
   useFocusEffect(
     useCallback(() => {
@@ -125,7 +126,7 @@ export default function DateDetailScreen() {
   );
 
   async function confirm() {
-    if (!item || !session?.access_token || isConfirming) return;
+    if (!item || !accessToken || isConfirming) return;
 
     setIsConfirming(true);
     setErrorMessage('');
@@ -136,7 +137,7 @@ export default function DateDetailScreen() {
         undefined
       >(
         `/dates/${encodeURIComponent(item.id)}/confirm`,
-        session.access_token,
+        accessToken,
         undefined,
         Crypto.randomUUID(),
         { 'If-Match': String(item.version) },
