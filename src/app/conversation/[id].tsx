@@ -8,6 +8,7 @@ import {
 } from 'expo-router';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -28,7 +29,9 @@ import {
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
+  ClosedConversationEnvelope,
   Conversation,
+  ConversationCloseRequest,
   ConversationEnvelope,
   ConversationMessage,
   SentMessageEnvelope,
@@ -72,6 +75,7 @@ export default function ConversationScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const counterpartName =
@@ -144,6 +148,9 @@ export default function ConversationScreen() {
   const isOpen = conversation?.state === 'open';
   const canProposeDate = Boolean(
     conversation?.available_actions.includes('propose_date'),
+  );
+  const canKindClose = Boolean(
+    conversation?.available_actions.includes('kind_close'),
   );
   const canSend =
     Boolean(isOpen) &&
@@ -231,6 +238,82 @@ export default function ConversationScreen() {
       }
     } finally {
       setIsSending(false);
+    }
+  }
+
+  function confirmKindClose() {
+    if (!conversation || isClosing || !canKindClose) return;
+
+    Alert.alert(
+      'Close this conversation?',
+      'This ends the conversation for both of you, cancels any active date plan, and releases both introduction slots. Your messages remain private.',
+      [
+        { text: 'Keep conversation', style: 'cancel' },
+        {
+          text: 'Close conversation',
+          style: 'destructive',
+          onPress: () => void kindClose(),
+        },
+      ],
+    );
+  }
+
+  async function kindClose() {
+    if (
+      !conversation ||
+      !accessToken ||
+      isClosing ||
+      !canKindClose
+    ) {
+      return;
+    }
+
+    setIsClosing(true);
+    setErrorMessage('');
+
+    try {
+      const response = await apiPost<
+        ClosedConversationEnvelope,
+        ConversationCloseRequest
+      >(
+        `/conversations/${encodeURIComponent(
+          conversation.id,
+        )}/close`,
+        accessToken,
+        { reason: null },
+        Crypto.randomUUID(),
+        { 'If-Match': String(conversation.version) },
+      );
+
+      setConversation(response.data);
+      setDraft('');
+      Alert.alert(
+        'Conversation closed',
+        'Both introduction slots are now available again.',
+      );
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (
+          error.status === 401 ||
+          error.code === 'authentication_required'
+        ) {
+          await signOut();
+          return;
+        }
+
+        if (
+          error.code === 'version_conflict' ||
+          error.code === 'state_conflict'
+        ) {
+          await load('refresh');
+        }
+
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('Unable to close this conversation.');
+      }
+    } finally {
+      setIsClosing(false);
     }
   }
 
@@ -399,6 +482,33 @@ export default function ConversationScreen() {
               name="chevron-forward"
               size={20}
             />
+          </Pressable>
+        ) : null}
+
+        {canKindClose ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={isClosing}
+            onPress={confirmKindClose}
+            style={[
+              styles.kindCloseAction,
+              isClosing && styles.kindCloseActionDisabled,
+            ]}
+          >
+            {isClosing ? (
+              <ActivityIndicator color="#665E57" size="small" />
+            ) : (
+              <Ionicons
+                color="#665E57"
+                name="hand-left-outline"
+                size={18}
+              />
+            )}
+            <Text style={styles.kindCloseActionText}>
+              {isClosing
+                ? 'Closing conversation…'
+                : 'Close conversation kindly'}
+            </Text>
           </Pressable>
         ) : null}
 
@@ -745,6 +855,23 @@ const styles = StyleSheet.create({
   },
   safetyActionText: {
     color: '#943D35',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  kindCloseAction: {
+    alignItems: 'center',
+    backgroundColor: '#EEEAE5',
+    borderTopColor: '#DED7D0',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 46,
+    paddingHorizontal: 14,
+  },
+  kindCloseActionDisabled: { opacity: 0.55 },
+  kindCloseActionText: {
+    color: '#665E57',
     fontSize: 13,
     fontWeight: '800',
   },

@@ -27,6 +27,11 @@ export type SentMessageEnvelope = JsonResponse<
   201
 >;
 
+export type ClosedConversationEnvelope = JsonResponse<
+  paths['/conversations/{id}/close']['post'],
+  200
+>;
+
 export type Conversation = ConversationEnvelope['data'];
 
 export type ConversationState = Conversation['state'];
@@ -36,3 +41,7 @@ export type ConversationAction =
 
 export type ConversationMessage =
   Conversation['messages'][number];
+
+export type ConversationCloseRequest = NonNullable<
+  paths['/conversations/{id}/close']['post']['requestBody']
+>['content']['application/json'];

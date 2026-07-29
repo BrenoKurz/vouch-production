@@ -439,6 +439,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversations/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Kindly close an active conversation and release both introduction slots. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                    "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+                    /** @description Integer resource version for optimistic concurrency (matches the `version` field of the target resource, optionally quoted as an ETag). Stale value returns 409 version_conflict. */
+                    "If-Match"?: components["parameters"]["IfMatchVersion"];
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ConversationCloseBody"];
+                };
+            };
+            responses: {
+                /** @description Conversation closed. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            data: components["schemas"]["ConversationDto"];
+                            meta: components["schemas"]["ApiEnvelopeMeta"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                409: components["responses"]["Conflict"];
+                422: components["responses"]["ValidationFailed"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/dates/{id}": {
         parameters: {
             query?: never;
@@ -1949,6 +2003,10 @@ export interface components {
         DateCancellationBody: {
             reason?: string | null;
         };
+        ConversationCloseBody: {
+            /** @description Optional private closure context. Never shared with the other member. */
+            reason?: string | null;
+        };
         DateRescheduleBody: {
             /** Format: date-time */
             scheduled_at: string;
@@ -2028,7 +2086,7 @@ export interface components {
         /** @enum {string} */
         ConversationState: "open" | "closed_scheduled" | "closed_passed" | "closed_expired";
         /** @enum {string} */
-        ConversationAction: "propose_date";
+        ConversationAction: "propose_date" | "kind_close";
         ConversationMessageDto: {
             id: string;
             body: string;
