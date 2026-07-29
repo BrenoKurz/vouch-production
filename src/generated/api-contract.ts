@@ -1712,6 +1712,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/me/profile/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register a completed private profile-photo upload */
+        post: operations["registerMyProfilePhoto"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/dossier/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve the member-visible dossier and activate an eligible member */
+        post: operations["approveMyIntakeDossier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1723,7 +1757,7 @@ export interface components {
         };
         ApiError: {
             /** @enum {string} */
-            code: "authentication_required" | "forbidden" | "not_found" | "validation_failed" | "state_conflict" | "version_conflict" | "idempotency_conflict" | "introduction_resolved" | "introduction_cap_reached" | "response_deadline_passed" | "conversation_closed" | "message_rejected" | "date_slot_unavailable" | "venue_unavailable" | "debrief_already_submitted" | "verification_pending" | "verification_rejected" | "membership_inactive" | "account_paused" | "account_suspended" | "account_banned" | "rate_limited" | "internal_error" | "not_implemented";
+            code: "authentication_required" | "forbidden" | "not_found" | "validation_failed" | "state_conflict" | "version_conflict" | "idempotency_conflict" | "activation_gate_failed" | "introduction_resolved" | "introduction_cap_reached" | "response_deadline_passed" | "conversation_closed" | "message_rejected" | "date_slot_unavailable" | "venue_unavailable" | "debrief_already_submitted" | "verification_pending" | "verification_rejected" | "membership_inactive" | "account_paused" | "account_suspended" | "account_banned" | "rate_limited" | "internal_error" | "not_implemented";
             message: string;
             retryable: boolean;
             request_id: string;
@@ -2133,6 +2167,33 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
         };
+        IntakeProfilePhotoDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            upload_id: string | null;
+            ordering: number;
+            is_primary: boolean;
+            /** @enum {string} */
+            screen_status: "pending" | "pass" | "flag" | "block" | "override_pass";
+            screen_reason: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        ActivationRequirements: {
+            admission_approved: boolean;
+            identity_verified: boolean;
+            age_assurance_passed: boolean;
+            profile_photo_approved: boolean;
+            intake_completed: boolean;
+            membership_access_granted: boolean;
+        };
+        MemberActivationReadiness: {
+            /** @enum {string} */
+            state: "not_ready" | "ready" | "active";
+            can_approve: boolean;
+            requirements: components["schemas"]["ActivationRequirements"];
+        };
         MemberIntakeDto: {
             /** Format: uuid */
             member_id: string;
@@ -2141,6 +2202,8 @@ export interface components {
             can_start: boolean;
             latest_session: components["schemas"]["IntakeSessionDto"] | null;
             dossier: components["schemas"]["IntakeDossierDto"] | null;
+            profile_photos: components["schemas"]["IntakeProfilePhotoDto"][];
+            activation: components["schemas"]["MemberActivationReadiness"];
             version: number;
         };
         IntakeAnswers: {
@@ -2159,6 +2222,19 @@ export interface components {
         };
         SubmitMemberIntakeRequest: {
             answers: components["schemas"]["IntakeAnswers"];
+        };
+        RegisterMemberProfilePhotoRequest: {
+            /** Format: uuid */
+            upload_id: string;
+            is_primary?: boolean;
+        };
+        ApproveMemberIntakeDossierRequest: {
+            confirmations: {
+                /** @constant */
+                dossier_accurate: true;
+                /** @constant */
+                matchmaking_processing_consented: true;
+            };
         };
         MemberIntakeEnvelope: {
             data: components["schemas"]["MemberIntakeDto"];
@@ -2425,6 +2501,74 @@ export interface operations {
         };
         responses: {
             /** @description Canonical completed member intake */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    registerMyProfilePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterMemberProfilePhotoRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical intake and activation state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    approveMyIntakeDossier: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveMemberIntakeDossierRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical active member intake state */
             200: {
                 headers: {
                     ETag?: string;

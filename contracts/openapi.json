@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.14.0",
+    "version": "0.15.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -64,6 +64,7 @@
               "state_conflict",
               "version_conflict",
               "idempotency_conflict",
+              "activation_gate_failed",
               "introduction_resolved",
               "introduction_cap_reached",
               "response_deadline_passed",
@@ -1719,6 +1720,112 @@
           }
         }
       },
+      "IntakeProfilePhotoDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "upload_id",
+          "ordering",
+          "is_primary",
+          "screen_status",
+          "screen_reason",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "upload_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "ordering": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "is_primary": {
+            "type": "boolean"
+          },
+          "screen_status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "pass",
+              "flag",
+              "block",
+              "override_pass"
+            ]
+          },
+          "screen_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ActivationRequirements": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "admission_approved",
+          "identity_verified",
+          "age_assurance_passed",
+          "profile_photo_approved",
+          "intake_completed",
+          "membership_access_granted"
+        ],
+        "properties": {
+          "admission_approved": {
+            "type": "boolean"
+          },
+          "identity_verified": {
+            "type": "boolean"
+          },
+          "age_assurance_passed": {
+            "type": "boolean"
+          },
+          "profile_photo_approved": {
+            "type": "boolean"
+          },
+          "intake_completed": {
+            "type": "boolean"
+          },
+          "membership_access_granted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberActivationReadiness": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state",
+          "can_approve",
+          "requirements"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "not_ready",
+              "ready",
+              "active"
+            ]
+          },
+          "can_approve": {
+            "type": "boolean"
+          },
+          "requirements": {
+            "$ref": "#/components/schemas/ActivationRequirements"
+          }
+        }
+      },
       "MemberIntakeDto": {
         "type": "object",
         "additionalProperties": false,
@@ -1729,6 +1836,8 @@
           "can_start",
           "latest_session",
           "dossier",
+          "profile_photos",
+          "activation",
           "version"
         ],
         "properties": {
@@ -1760,6 +1869,15 @@
               }
             ],
             "nullable": true
+          },
+          "profile_photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeProfilePhotoDto"
+            }
+          },
+          "activation": {
+            "$ref": "#/components/schemas/MemberActivationReadiness"
           },
           "version": {
             "type": "integer",
@@ -1864,6 +1982,49 @@
         "properties": {
           "answers": {
             "$ref": "#/components/schemas/IntakeAnswers"
+          }
+        }
+      },
+      "RegisterMemberProfilePhotoRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upload_id"
+        ],
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "is_primary": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ApproveMemberIntakeDossierRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "confirmations"
+        ],
+        "properties": {
+          "confirmations": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dossier_accurate",
+              "matchmaking_processing_consented"
+            ],
+            "properties": {
+              "dossier_accurate": {
+                "type": "boolean",
+                "const": true
+              },
+              "matchmaking_processing_consented": {
+                "type": "boolean",
+                "const": true
+              }
+            }
           }
         }
       },
@@ -4225,6 +4386,170 @@
         "responses": {
           "200": {
             "description": "Canonical completed member intake",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Resource-Version": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberIntakeEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/members/me/profile/photos": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Register a completed private profile-photo upload",
+        "operationId": "registerMyProfilePhoto",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMemberProfilePhotoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canonical intake and activation state",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Resource-Version": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberIntakeEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/members/me/intake/dossier/approve": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Approve the member-visible dossier and activate an eligible member",
+        "operationId": "approveMyIntakeDossier",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveMemberIntakeDossierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Canonical active member intake state",
             "headers": {
               "ETag": {
                 "schema": {

@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import * as Crypto from "expo-crypto";
+import * as ImagePicker from "expo-image-picker";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -15,11 +16,15 @@ import {
 } from "react-native";
 
 import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { uploadProfilePhoto } from "@/lib/profile-photos";
 import { useAuth } from "@/providers/auth-provider";
 import type {
+  ApproveDossierEnvelope,
+  ApproveDossierRequest,
   IntakeAnswers,
   IntakeDossier,
   IntakeEnvelope,
+  IntakeProfilePhoto,
   MemberIntake,
   StartIntakeEnvelope,
   StartIntakeRequest,
@@ -57,6 +62,21 @@ const STATE_LABELS: Record<MemberIntake["intake_state"], string> = {
   in_progress: "In progress",
   completed: "Submitted",
 };
+
+type ActivationRequirementKey =
+  keyof MemberIntake["activation"]["requirements"];
+
+const ACTIVATION_REQUIREMENTS: {
+  key: ActivationRequirementKey;
+  label: string;
+}[] = [
+  { key: "admission_approved", label: "Application approved" },
+  { key: "identity_verified", label: "Identity verified" },
+  { key: "age_assurance_passed", label: "Age assurance passed" },
+  { key: "profile_photo_approved", label: "Profile photo approved" },
+  { key: "intake_completed", label: "Matchmaking intake complete" },
+  { key: "membership_access_granted", label: "Membership access granted" },
+];
 
 function parseList(value: string): string[] {
   return value
@@ -176,6 +196,10 @@ export default function IntakeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [dossierAccurate, setDossierAccurate] = useState(false);
+  const [processingConsented, setProcessingConsented] = useState(false);
 
   const loadIntake = useCallback(async () => {
     if (!accessToken) {
@@ -311,6 +335,147 @@ export default function IntakeScreen() {
     }
   }
 
+  async function handleChoosePhoto() {
+    if (
+      !accessToken ||
+      !intake ||
+      intake.profile_photos.length > 0 ||
+      isUploadingPhoto
+    ) {
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    setErrorMessage(null);
+
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        setErrorMessage(
+          "Allow photo-library access to choose a private profile photo.",
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [4, 5],
+        mediaTypes: ["images"],
+        quality: 0.85,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const asset = result.assets[0];
+
+      if (!asset) {
+        throw new Error("No profile photo was selected.");
+      }
+
+      const response = await uploadProfilePhoto({
+        accessToken,
+        asset: {
+          uri: asset.uri,
+          name: asset.fileName ?? `vouch-profile-${Date.now()}.jpg`,
+          mimeType: asset.mimeType ?? null,
+          size: asset.fileSize ?? null,
+        },
+        version: intake.version,
+      });
+
+      setIntake(response.data);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "version_conflict") {
+        setErrorMessage(
+          "Your membership changed. We refreshed your activation status.",
+        );
+        await loadIntake();
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "We could not upload your profile photo.",
+        );
+      }
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  }
+
+  async function handleApproveDossier() {
+    if (
+      !accessToken ||
+      !intake ||
+      !intake.activation.can_approve ||
+      !dossierAccurate ||
+      !processingConsented ||
+      isApproving
+    ) {
+      return;
+    }
+
+    setIsApproving(true);
+    setErrorMessage(null);
+
+    const body: ApproveDossierRequest = {
+      confirmations: {
+        dossier_accurate: true,
+        matchmaking_processing_consented: true,
+      },
+    };
+
+    try {
+      const response = await apiPost<
+        ApproveDossierEnvelope,
+        ApproveDossierRequest
+      >(
+        "/members/me/intake/dossier/approve",
+        accessToken,
+        body,
+        Crypto.randomUUID(),
+        {
+          "If-Match": String(intake.version),
+        },
+      );
+
+      setIntake(response.data);
+      setDossierAccurate(false);
+      setProcessingConsented(false);
+    } catch (error) {
+      if (
+        error instanceof ApiError &&
+        (error.code === "activation_gate_failed" ||
+          error.code === "version_conflict")
+      ) {
+        setErrorMessage(
+          error.code === "version_conflict"
+            ? "Your membership changed. We refreshed your activation status."
+            : "One activation requirement changed. Review the refreshed checklist.",
+        );
+        await loadIntake();
+      } else {
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "We could not approve your matchmaking dossier.",
+        );
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  }
+
+  const currentStatusLabel =
+    intake?.activation.state === "active"
+      ? "Active"
+      : intake
+        ? STATE_LABELS[intake.intake_state]
+        : "";
+
   return (
     <>
       <Stack.Screen options={{ title: "Matchmaking intake" }} />
@@ -362,14 +527,13 @@ export default function IntakeScreen() {
                 <View style={styles.statusCard}>
                   <View>
                     <Text style={styles.cardLabel}>CURRENT STATUS</Text>
-                    <Text style={styles.statusTitle}>
-                      {STATE_LABELS[intake.intake_state]}
-                    </Text>
+                    <Text style={styles.statusTitle}>{currentStatusLabel}</Text>
                   </View>
 
                   <View
                     style={[
                       styles.statusBadge,
+                      intake.activation.state === "active" ||
                       intake.intake_state === "completed"
                         ? styles.statusPositive
                         : intake.intake_state === "in_progress"
@@ -378,7 +542,7 @@ export default function IntakeScreen() {
                     ]}
                   >
                     <Text style={styles.statusBadgeText}>
-                      {STATE_LABELS[intake.intake_state]}
+                      {currentStatusLabel}
                     </Text>
                   </View>
                 </View>
@@ -561,7 +725,20 @@ export default function IntakeScreen() {
                 ) : null}
 
                 {intake.intake_state === "completed" && intake.dossier ? (
-                  <CompletedIntake dossier={intake.dossier} />
+                  <>
+                    <CompletedIntake dossier={intake.dossier} />
+                    <ActivationCard
+                      dossierAccurate={dossierAccurate}
+                      intake={intake}
+                      isApproving={isApproving}
+                      isUploadingPhoto={isUploadingPhoto}
+                      onApprove={() => void handleApproveDossier()}
+                      onChoosePhoto={() => void handleChoosePhoto()}
+                      onDossierAccurateChange={setDossierAccurate}
+                      onProcessingConsentedChange={setProcessingConsented}
+                      processingConsented={processingConsented}
+                    />
+                  </>
                 ) : null}
 
                 <View style={styles.privacyCard}>
@@ -654,6 +831,233 @@ function CompletedIntake({ dossier }: { dossier: IntakeDossier }) {
         value={dossier.location_preferences}
       />
     </View>
+  );
+}
+
+function photoReviewCopy(photo: IntakeProfilePhoto | undefined): {
+  title: string;
+  text: string;
+  positive: boolean;
+} {
+  if (!photo) {
+    return {
+      title: "Add a profile photo",
+      text: "Choose one clear, recent photo. It stays private while the Vouch team reviews it for your member profile.",
+      positive: false,
+    };
+  }
+
+  if (
+    photo.screen_status === "pass" ||
+    photo.screen_status === "override_pass"
+  ) {
+    return {
+      title: "Profile photo approved",
+      text: "Your photo passed review and is ready for your private member profile.",
+      positive: true,
+    };
+  }
+
+  if (photo.screen_status === "pending") {
+    return {
+      title: "Profile photo under review",
+      text: "The Vouch team will review it before activation. You do not need to upload it again.",
+      positive: false,
+    };
+  }
+
+  return {
+    title: "Profile photo needs attention",
+    text: "Your matchmaker is reviewing the photo. The Vouch team will follow up if a different photo is needed.",
+    positive: false,
+  };
+}
+
+function ActivationCard({
+  dossierAccurate,
+  intake,
+  isApproving,
+  isUploadingPhoto,
+  onApprove,
+  onChoosePhoto,
+  onDossierAccurateChange,
+  onProcessingConsentedChange,
+  processingConsented,
+}: {
+  dossierAccurate: boolean;
+  intake: MemberIntake;
+  isApproving: boolean;
+  isUploadingPhoto: boolean;
+  onApprove: () => void;
+  onChoosePhoto: () => void;
+  onDossierAccurateChange: (value: boolean) => void;
+  onProcessingConsentedChange: (value: boolean) => void;
+  processingConsented: boolean;
+}) {
+  if (intake.activation.state === "active") {
+    return (
+      <View style={styles.activeCard}>
+        <Text style={styles.activeEyebrow}>MEMBERSHIP ACTIVE</Text>
+        <Text style={styles.activeTitle}>You’re ready for introductions</Text>
+        <Text style={styles.activeText}>
+          Your approved dossier is now available to the Vouch team for
+          thoughtful, human-led matchmaking.
+        </Text>
+      </View>
+    );
+  }
+
+  const photo = intake.profile_photos[0];
+  const photoCopy = photoReviewCopy(photo);
+  const canSubmitApproval =
+    intake.activation.can_approve &&
+    dossierAccurate &&
+    processingConsented &&
+    !isApproving;
+
+  return (
+    <View style={styles.activationCard}>
+      <Text style={styles.activationEyebrow}>ACTIVATION CHECKLIST</Text>
+      <Text style={styles.activationTitle}>Complete your membership</Text>
+      <Text style={styles.activationText}>
+        Every requirement must be verified before your dossier can enter active
+        matchmaking.
+      </Text>
+
+      <View style={styles.requirements}>
+        {ACTIVATION_REQUIREMENTS.map((requirement) => {
+          const complete = intake.activation.requirements[requirement.key];
+
+          return (
+            <View key={requirement.key} style={styles.requirementRow}>
+              <View
+                style={[
+                  styles.requirementIcon,
+                  complete && styles.requirementIconComplete,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.requirementMark,
+                    complete && styles.requirementMarkComplete,
+                  ]}
+                >
+                  {complete ? "✓" : "·"}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.requirementLabel,
+                  complete && styles.requirementLabelComplete,
+                ]}
+              >
+                {requirement.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      <View
+        style={[
+          styles.photoCard,
+          photoCopy.positive && styles.photoCardPositive,
+        ]}
+      >
+        <Text style={styles.photoTitle}>{photoCopy.title}</Text>
+        <Text style={styles.photoText}>{photoCopy.text}</Text>
+
+        {!photo ? (
+          <Pressable
+            disabled={isUploadingPhoto}
+            onPress={onChoosePhoto}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              isUploadingPhoto && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            {isUploadingPhoto ? (
+              <ActivityIndicator color="#352D28" />
+            ) : (
+              <Text style={styles.secondaryButtonText}>
+                Choose profile photo
+              </Text>
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+
+      {intake.activation.can_approve ? (
+        <View style={styles.confirmationCard}>
+          <Text style={styles.confirmationTitle}>Your final review</Text>
+          <Text style={styles.confirmationIntro}>
+            Review the submitted dossier above, then confirm both statements.
+          </Text>
+
+          <ConfirmationRow
+            checked={dossierAccurate}
+            label="I confirm this dossier accurately reflects the information I submitted."
+            onChange={onDossierAccurateChange}
+          />
+          <ConfirmationRow
+            checked={processingConsented}
+            label="I consent to Vouch using my dossier and approved profile information for human matchmaking and introductions."
+            onChange={onProcessingConsentedChange}
+          />
+
+          <Pressable
+            disabled={!canSubmitApproval}
+            onPress={onApprove}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              !canSubmitApproval && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            {isApproving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.primaryButtonText}>
+                Approve and activate membership
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={styles.waitingText}>
+          Vouch will unlock your final review automatically when every item is
+          complete.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function ConfirmationRow({
+  checked,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  label: string;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={() => onChange(!checked)}
+      style={({ pressed }) => [
+        styles.confirmationRow,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        <Text style={styles.checkboxMark}>{checked ? "✓" : ""}</Text>
+      </View>
+      <Text style={styles.confirmationLabel}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -943,6 +1347,178 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     marginTop: 5,
+  },
+  activationCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#D8D0C8",
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 18,
+  },
+  activationEyebrow: {
+    color: "#8A8179",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+  },
+  activationTitle: {
+    color: "#292421",
+    fontSize: 21,
+    fontWeight: "700",
+    lineHeight: 27,
+    marginTop: 7,
+  },
+  activationText: {
+    color: "#625A54",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
+  },
+  requirements: {
+    marginTop: 18,
+  },
+  requirementRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: 11,
+  },
+  requirementIcon: {
+    alignItems: "center",
+    backgroundColor: "#EEE9E4",
+    borderRadius: 10,
+    height: 20,
+    justifyContent: "center",
+    width: 20,
+  },
+  requirementIconComplete: {
+    backgroundColor: "#DCEBDD",
+  },
+  requirementMark: {
+    color: "#8A8179",
+    fontSize: 15,
+    fontWeight: "800",
+    lineHeight: 18,
+  },
+  requirementMarkComplete: {
+    color: "#47694A",
+    fontSize: 12,
+  },
+  requirementLabel: {
+    color: "#746D66",
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    marginLeft: 10,
+  },
+  requirementLabelComplete: {
+    color: "#3F5E42",
+  },
+  photoCard: {
+    backgroundColor: "#F6F1EA",
+    borderColor: "#E1D8CE",
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 15,
+  },
+  photoCardPositive: {
+    backgroundColor: "#EFF6EF",
+    borderColor: "#CDDCCC",
+  },
+  photoTitle: {
+    color: "#352D28",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  photoText: {
+    color: "#625A54",
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+  confirmationCard: {
+    borderTopColor: "#ECE7E2",
+    borderTopWidth: 1,
+    marginTop: 20,
+    paddingTop: 18,
+  },
+  confirmationTitle: {
+    color: "#292421",
+    fontSize: 17,
+    fontWeight: "700",
+  },
+  confirmationIntro: {
+    color: "#746D66",
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 14,
+    marginTop: 6,
+  },
+  confirmationRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    marginTop: 12,
+  },
+  checkbox: {
+    alignItems: "center",
+    borderColor: "#AFA59C",
+    borderRadius: 5,
+    borderWidth: 1,
+    height: 22,
+    justifyContent: "center",
+    marginTop: 1,
+    width: 22,
+  },
+  checkboxChecked: {
+    backgroundColor: "#352D28",
+    borderColor: "#352D28",
+  },
+  checkboxMark: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  confirmationLabel: {
+    color: "#4F4842",
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    marginLeft: 11,
+  },
+  waitingText: {
+    color: "#746D66",
+    fontSize: 12,
+    fontStyle: "italic",
+    lineHeight: 18,
+    marginTop: 16,
+  },
+  activeCard: {
+    backgroundColor: "#EAF3EA",
+    borderColor: "#C8D8C8",
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 18,
+  },
+  activeEyebrow: {
+    color: "#507253",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+  },
+  activeTitle: {
+    color: "#2F5033",
+    fontSize: 21,
+    fontWeight: "700",
+    lineHeight: 27,
+    marginTop: 7,
+  },
+  activeText: {
+    color: "#49634B",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 8,
   },
   privacyCard: {
     backgroundColor: "#EEE8E1",
