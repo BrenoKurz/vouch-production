@@ -1639,7 +1639,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update the authenticated member profile */
+        patch: operations["updateMyMemberProfile"];
         trace?: never;
     };
 }
@@ -1985,6 +1986,19 @@ export interface components {
         };
         /** @enum {string} */
         MemberStatus: "applicant" | "waitlisted" | "invited" | "verification_pending" | "intake_pending" | "member_review_pending" | "active" | "paused" | "graduated" | "suspended" | "banned";
+        MemberProfileUpdateRequest: {
+            neighborhood?: string | null;
+            relationship_intent?: string | null;
+            seeking?: string | null;
+            dating_radius_miles?: number | null;
+            kids_status?: string | null;
+            kids_preference?: string | null;
+            prompts?: {
+                id: string;
+                question: string;
+                answer: string;
+            }[];
+        };
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -2075,6 +2089,42 @@ export interface operations {
             /** @description Member profile not found. */
             404: components["responses"]["NotFound"];
             501: components["responses"]["NotImplemented"];
+        };
+    };
+    updateMyMemberProfile: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Current member profile version used for optimistic concurrency. */
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemberProfileUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MemberProfileDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Member profile not found. */
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Conflict"];
         };
     };
 }

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -71,6 +71,7 @@ function statusTone(state: ProfileVerificationState | ProfileIntakeState) {
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { session, signOut } = useAuth();
 
   const [profile, setProfile] = useState<MemberProfile | null>(null);
@@ -204,6 +205,16 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+
+        <Pressable
+          onPress={() => router.push("/edit-profile")}
+          style={({ pressed }) => [
+            styles.editButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <Text style={styles.editButtonText}>Edit profile</Text>
+        </Pressable>
 
         {errorMessage ? (
           <View style={styles.warningCard}>
@@ -418,6 +429,19 @@ const styles = StyleSheet.create({
     color: "#352D28",
     fontSize: 11,
     fontWeight: "800",
+  },
+  editButton: {
+    alignItems: "center",
+    backgroundColor: "#352D28",
+    borderRadius: 9,
+    height: 50,
+    justifyContent: "center",
+    marginBottom: 22,
+  },
+  editButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
   warningCard: {
     backgroundColor: "#FFF4DE",
