@@ -1643,6 +1643,24 @@ export interface paths {
         patch: operations["updateMyMemberProfile"];
         trace?: never;
     };
+    "/members/me/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated member verification state */
+        get: operations["getMyVerification"];
+        put?: never;
+        /** Start identity verification for the authenticated member */
+        post: operations["startMyVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1999,6 +2017,42 @@ export interface components {
                 answer: string;
             }[];
         };
+        /** @enum {string} */
+        VerificationState: "not_started" | "pending" | "verified" | "rejected";
+        VerificationSessionDto: {
+            /** Format: uuid */
+            id: string;
+            provider: string;
+            /** @enum {string} */
+            status: "pending" | "passed" | "failed";
+            age_assurance_passed: boolean | null;
+            reason_codes: string[];
+            /** Format: date-time */
+            verified_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        MemberVerificationDto: {
+            /** Format: uuid */
+            member_id: string;
+            member_status: components["schemas"]["MemberStatus"];
+            verification_state: components["schemas"]["VerificationState"];
+            requires_date_of_birth: boolean;
+            /** Format: date */
+            date_of_birth: string | null;
+            /** Format: date-time */
+            verified_at: string | null;
+            latest_session: components["schemas"]["VerificationSessionDto"] | null;
+            version: number;
+        };
+        StartMemberVerificationRequest: {
+            /** Format: date */
+            date_of_birth: string;
+        };
+        MemberVerificationEnvelope: {
+            data: components["schemas"]["MemberVerificationDto"];
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -2125,6 +2179,63 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Conflict"];
+        };
+    };
+    getMyVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical member verification state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberVerificationEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    startMyVerification: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartMemberVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical member verification state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberVerificationEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
 }

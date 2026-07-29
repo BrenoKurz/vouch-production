@@ -13,12 +13,21 @@ if (!supabaseUrl || !supabasePublishableKey) {
   );
 }
 
+const authStorage =
+  typeof localStorage === 'undefined'
+    ? {
+        getItem: () => null,
+        setItem: () => undefined,
+        removeItem: () => undefined,
+      }
+    : localStorage;
+
 export const supabase = createClient(
   supabaseUrl,
   supabasePublishableKey,
   {
     auth: {
-      storage: localStorage,
+      storage: authStorage,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

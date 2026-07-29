@@ -226,7 +226,15 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Membership progress</Text>
 
           <View style={styles.progressCard}>
-            <View style={styles.progressRow}>
+            <Pressable
+              accessibilityHint="Opens identity verification"
+              accessibilityRole="button"
+              onPress={() => router.push("/verification")}
+              style={({ pressed }) => [
+                styles.progressRow,
+                pressed && styles.pressed,
+              ]}
+            >
               <View style={styles.progressCopy}>
                 <Text style={styles.progressLabel}>Identity verification</Text>
                 <Text style={styles.progressDescription}>
@@ -244,7 +252,7 @@ export default function ProfileScreen() {
                   {VERIFICATION_LABELS[profile.verification_state]}
                 </Text>
               </View>
-            </View>
+            </Pressable>
 
             <View style={styles.divider} />
 
