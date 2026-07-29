@@ -1697,6 +1697,23 @@ export interface paths {
         patch: operations["updateMyMemberProfile"];
         trace?: never;
     };
+    "/members/me/membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause, resume, or graduate the authenticated membership */
+        post: operations["changeMyMembership"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/members/me/verification": {
         parameters: {
             query?: never;
@@ -2109,9 +2126,15 @@ export interface components {
             question: string;
             answer: string;
         };
+        /** @enum {string} */
+        MembershipAction: "pause" | "resume" | "graduate";
+        MembershipActionRequest: {
+            action: components["schemas"]["MembershipAction"];
+        };
         MemberProfileDto: {
             id: string;
             status: components["schemas"]["MemberStatus"];
+            membership_actions: components["schemas"]["MembershipAction"][];
             first_name: string;
             date_of_birth: string | null;
             age_display: number | null;
@@ -2424,6 +2447,42 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Conflict"];
+        };
+    };
+    changeMyMembership: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+                /** @description Integer resource version for optimistic concurrency (matches the `version` field of the target resource, optionally quoted as an ETag). Stale value returns 409 version_conflict. */
+                "If-Match"?: components["parameters"]["IfMatchVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MembershipActionRequest"];
+            };
+        };
+        responses: {
+            /** @description Membership state updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["MemberProfileDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     getMyVerification: {

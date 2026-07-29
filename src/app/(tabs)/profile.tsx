@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   SafeAreaView,
@@ -11,11 +12,14 @@ import {
   View,
 } from "react-native";
 
-import { ApiError, apiGet } from "@/lib/api";
+import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import type {
   MemberProfile,
   MemberProfilePrompt,
+  MembershipAction,
+  MembershipActionRequest,
+  MembershipEnvelope,
   ProfileEnvelope,
   ProfileIntakeState,
   ProfileVerificationState,
@@ -78,6 +82,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isChangingMembership, setIsChangingMembership] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const loadProfile = useCallback(
@@ -135,6 +140,83 @@ export default function ProfileScreen() {
     } finally {
       setIsSigningOut(false);
     }
+  }
+
+  async function changeMembership(action: MembershipAction) {
+    const accessToken = session?.access_token;
+
+    if (!accessToken || !profile || isChangingMembership) {
+      return;
+    }
+
+    setIsChangingMembership(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await apiPost<
+        MembershipEnvelope,
+        MembershipActionRequest
+      >(
+        "/members/me/membership",
+        accessToken,
+        { action },
+        `membership-${action}-${profile.id}-${profile.version}`,
+        { "If-Match": String(profile.version) },
+      );
+
+      setProfile(response.data);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "version_conflict") {
+        setErrorMessage(
+          "Your membership changed while this page was open. We refreshed the latest status.",
+        );
+        await loadProfile();
+      } else {
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "We could not update your membership.",
+        );
+      }
+    } finally {
+      setIsChangingMembership(false);
+    }
+  }
+
+  function confirmMembershipAction(action: MembershipAction) {
+    const content: Record<
+      MembershipAction,
+      { title: string; message: string; confirm: string }
+    > = {
+      pause: {
+        title: "Pause new introductions?",
+        message:
+          "You will stop receiving new introductions. Existing connections remain available, and you can resume when you are ready.",
+        confirm: "Pause membership",
+      },
+      resume: {
+        title: "Resume introductions?",
+        message:
+          "Your membership will become active again and you can receive new curated introductions.",
+        confirm: "Resume membership",
+      },
+      graduate: {
+        title: "Graduate from Vouch?",
+        message:
+          "Choose this when you have found a relationship. Graduation is permanent for this membership cycle and requires all active connections to be complete.",
+        confirm: "Graduate",
+      },
+    };
+    const copy = content[action];
+
+    Alert.alert(copy.title, copy.message, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: copy.confirm,
+        style: action === "graduate" ? "destructive" : "default",
+        onPress: () => void changeMembership(action),
+      },
+    ]);
   }
 
   if (isLoading && !profile) {
@@ -348,6 +430,59 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {["active", "paused", "graduated"].includes(profile.status) ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Membership</Text>
+
+            <View style={styles.membershipCard}>
+              <Text style={styles.membershipStatus}>
+                {humanize(profile.status)}
+              </Text>
+              <Text style={styles.membershipDescription}>
+                {profile.status === "active"
+                  ? "Your membership is active and eligible for curated introductions."
+                  : profile.status === "graduated"
+                    ? "Congratulations. Your Vouch membership cycle is complete."
+                    : profile.membership_actions.includes("resume")
+                      ? "New introductions are paused. Existing connections remain available."
+                      : "Your membership is paused by Vouch. Contact support if you need help."}
+              </Text>
+
+              {profile.membership_actions.map((action) => (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isChangingMembership}
+                  key={action}
+                  onPress={() => confirmMembershipAction(action)}
+                  style={({ pressed }) => [
+                    styles.membershipButton,
+                    action === "graduate" && styles.membershipButtonDestructive,
+                    (pressed || isChangingMembership) && styles.pressed,
+                  ]}
+                >
+                  {isChangingMembership ? (
+                    <ActivityIndicator color="#352D28" />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.membershipButtonText,
+                        action === "graduate" &&
+                          styles.membershipButtonTextDestructive,
+                      ]}
+                    >
+                      {action === "pause"
+                        ? "Pause new introductions"
+                        : action === "resume"
+                          ? "Resume membership"
+                          : "Graduate from Vouch"}
+                    </Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.accountCard}>
           <Text style={styles.accountTitle}>Account</Text>
@@ -620,6 +755,45 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     padding: 18,
+  },
+  membershipCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E3DDD6",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 18,
+  },
+  membershipStatus: {
+    color: "#292421",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  membershipDescription: {
+    color: "#746D66",
+    fontSize: 14,
+    lineHeight: 21,
+    marginTop: 7,
+  },
+  membershipButton: {
+    alignItems: "center",
+    borderColor: "#BEB6AE",
+    borderRadius: 9,
+    borderWidth: 1,
+    height: 48,
+    justifyContent: "center",
+    marginTop: 14,
+    paddingHorizontal: 16,
+  },
+  membershipButtonDestructive: {
+    borderColor: "#C98D86",
+  },
+  membershipButtonText: {
+    color: "#352D28",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  membershipButtonTextDestructive: {
+    color: "#8A352B",
   },
   accountTitle: {
     color: "#292421",

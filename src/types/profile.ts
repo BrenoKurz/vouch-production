@@ -9,9 +9,17 @@ export type ProfileUpdateEnvelope =
 export type ProfileUpdateRequest =
   paths["/members/me/profile"]["patch"]["requestBody"]["content"]["application/json"];
 
+export type MembershipEnvelope =
+  paths["/members/me/membership"]["post"]["responses"][200]["content"]["application/json"];
+
+export type MembershipActionRequest =
+  paths["/members/me/membership"]["post"]["requestBody"]["content"]["application/json"];
+
 export type MemberProfile = ProfileEnvelope["data"];
 
 export type MemberProfilePrompt = MemberProfile["prompts"][number];
+
+export type MembershipAction = MemberProfile["membership_actions"][number];
 
 export type ProfileVerificationState = MemberProfile["verification_state"];
 

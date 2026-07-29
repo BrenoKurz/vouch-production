@@ -1,56 +1,54 @@
-# Welcome to your Expo app 👋
+# Vouch Member App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Expo member experience for Vouch, a private, human-curated dating and
+personal-introduction service. Members apply, verify, complete matchmaking
+intake, review their private dossier, receive curated introductions, talk
+after mutual acceptance, schedule dates, complete private debriefs, manage
+their membership, and report safety concerns.
 
-## Get started
+There is no swipe deck, public member search, likes queue, paid ranking, or
+pre-match messaging.
 
-1. Install dependencies
+## Production architecture
 
-   ```bash
-   npm install
-   ```
+- Expo Router application for iOS, Android, and web.
+- Supabase Auth for member sessions.
+- All domain reads and mutations go through the deployed `api-v1` Edge
+  Function.
+- `contracts/openapi.json` is synced from the backend repository or the live
+  API and generates `src/generated/api-contract.ts`.
+- `src/lib/contract.ts` pins the exact API contract. The app fails closed
+  with an update message if the deployed API version differs.
+- Photos, verification media, intake media, and safety evidence use private
+  signed uploads.
 
-2. Start the app
+The current member API contract is `0.17.0`.
 
-   ```bash
-   npx expo start
-   ```
+## Local development
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Create `.env` with the public API base URL, Supabase URL, and publishable
+key. Never place service-role credentials in the mobile app.
 
 ```bash
-npm run reset-project
+npm install
+npm run contract:sync
+npm run contract:generate
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Quality gates:
 
-### Other setup steps
+```bash
+npx tsc --noEmit
+npm run lint
+npm run contract:check
+npx expo-doctor
+npx expo export --platform web
+npx expo export --platform ios
+npx expo export --platform android
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+`npm run contract:sync` prefers the sibling
+`vouch-personal-connections/src/contracts/openapi.json` file and falls back
+to the production contract endpoint. A contract version change requires an
+intentional update to both the sync script and `src/lib/contract.ts`.

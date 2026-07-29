@@ -1,6 +1,6 @@
 import type { components } from '@/generated/api-contract';
 
-export const EXPECTED_CONTRACT_VERSION = '0.16.0' as const;
+export const EXPECTED_CONTRACT_VERSION = '0.17.0' as const;
 
 export type ApiEnvelopeMeta =
   components['schemas']['ApiEnvelopeMeta'];
