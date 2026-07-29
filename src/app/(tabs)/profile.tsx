@@ -256,7 +256,15 @@ export default function ProfileScreen() {
 
             <View style={styles.divider} />
 
-            <View style={styles.progressRow}>
+            <Pressable
+              accessibilityHint="Opens matchmaking intake"
+              accessibilityRole="button"
+              onPress={() => router.push("/intake")}
+              style={({ pressed }) => [
+                styles.progressRow,
+                pressed && styles.pressed,
+              ]}
+            >
               <View style={styles.progressCopy}>
                 <Text style={styles.progressLabel}>Matchmaking intake</Text>
                 <Text style={styles.progressDescription}>
@@ -271,7 +279,7 @@ export default function ProfileScreen() {
                   {INTAKE_LABELS[profile.intake.state]}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           </View>
         </View>
 

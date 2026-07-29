@@ -1661,6 +1661,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/me/intake": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated member matchmaking intake */
+        get: operations["getMyIntake"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a member-authored matchmaking intake session */
+        post: operations["startMyIntake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/sessions/{session_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a member-authored matchmaking intake */
+        post: operations["submitMyIntake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2053,6 +2104,66 @@ export interface components {
             data: components["schemas"]["MemberVerificationDto"];
             meta: components["schemas"]["ApiEnvelopeMeta"];
         };
+        IntakeSessionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            modality: "voice" | "text";
+            /** @enum {string} */
+            status: "in_progress" | "completed" | "abandoned";
+            /** Format: date-time */
+            completed_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        IntakeDossierDto: {
+            /** Format: uuid */
+            id: string;
+            relationship_goal: string;
+            partner_qualities: string[];
+            dealbreakers: string[];
+            values: string[];
+            communication_style: string;
+            typical_availability: string;
+            location_preferences: string;
+            member_visible_summary: string;
+            /** Format: date-time */
+            member_reviewed_at: string | null;
+            member_approved_version: number | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        MemberIntakeDto: {
+            /** Format: uuid */
+            member_id: string;
+            member_status: components["schemas"]["MemberStatus"];
+            intake_state: components["schemas"]["ProfileIntakeState"];
+            can_start: boolean;
+            latest_session: components["schemas"]["IntakeSessionDto"] | null;
+            dossier: components["schemas"]["IntakeDossierDto"] | null;
+            version: number;
+        };
+        IntakeAnswers: {
+            relationship_goal: string;
+            partner_qualities: string[];
+            dealbreakers: string[];
+            values: string[];
+            communication_style: string;
+            typical_availability: string;
+            location_preferences: string;
+            matchmaker_notes: string;
+        };
+        StartMemberIntakeRequest: {
+            /** @enum {string} */
+            modality: "text";
+        };
+        SubmitMemberIntakeRequest: {
+            answers: components["schemas"]["IntakeAnswers"];
+        };
+        MemberIntakeEnvelope: {
+            data: components["schemas"]["MemberIntakeDto"];
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
     };
     responses: {
         /** @description Missing or invalid bearer token. */
@@ -2233,6 +2344,99 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getMyIntake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical member intake state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    startMyIntake: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartMemberIntakeRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical member intake state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    submitMyIntake: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitMemberIntakeRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical completed member intake */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
