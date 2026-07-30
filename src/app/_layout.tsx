@@ -61,6 +61,7 @@ function RootNavigator() {
           <Stack.Screen name="verification" />
           <Stack.Screen name="intake" />
           <Stack.Screen name="edit-profile" />
+          <Stack.Screen name="profile-photos" />
           <Stack.Screen name="introduction/[id]" />
           <Stack.Screen name="conversation/[id]" />
           <Stack.Screen name="schedule-date/[conversationId]" />

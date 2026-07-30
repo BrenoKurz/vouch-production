@@ -10,8 +10,10 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -208,6 +210,53 @@ export default function DateDetailScreen() {
     );
   }
 
+  async function shareDatePlan() {
+    if (!item) {
+      return;
+    }
+
+    const venue = item.venue?.name ?? "Venue still being decided";
+    const address = item.venue?.address_public
+      ? `\n${item.venue.address_public}`
+      : "";
+
+    try {
+      await Share.share({
+        title: `Vouch date with ${item.counterpart_profile.first_name}`,
+        message: [
+          "My Vouch date plan",
+          `With: ${item.counterpart_profile.first_name}`,
+          `When: ${formatDate(item.starts_at)} at ${formatTime(
+            item.starts_at,
+          )}`,
+          `Where: ${venue}${address}`,
+          "",
+          "I’m sharing this with someone I trust. Vouch safety and support are available in the app.",
+        ].join("\n"),
+      });
+    } catch {
+      setErrorMessage("We could not open the share sheet.");
+    }
+  }
+
+  async function openVenueMap() {
+    const address = item?.venue?.address_public;
+
+    if (!address) {
+      return;
+    }
+
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      address,
+    )}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setErrorMessage("We could not open this location in maps.");
+    }
+  }
+
   if (isLoading) {
     return (
       <AppScreen includeBottomInset>
@@ -374,6 +423,82 @@ export default function DateDetailScreen() {
             </View>
           </View>
         </View>
+
+        {item.state === 'proposed' || item.state === 'confirmed' ? (
+          <View style={styles.safetyPlan}>
+            <View style={styles.safetyPlanHeader}>
+              <View style={styles.safetyPlanIcon}>
+                <Ionicons
+                  color={palette.sage}
+                  name="shield-checkmark-outline"
+                  size={23}
+                />
+              </View>
+              <View style={styles.safetyPlanCopy}>
+                <Text style={styles.safetyPlanEyebrow}>DATE SAFETY PLAN</Text>
+                <Text style={styles.safetyPlanTitle}>
+                  Share the plan with someone you trust
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.safetyPlanBody}>
+              Vouch prepares the date, but you stay in control. Meet in public,
+              keep your own transportation available, and let a trusted person
+              know the plan.
+            </Text>
+            <View style={styles.safetyChecks}>
+              {[
+                'Trusted contact has the details',
+                'Public venue and independent ride',
+                'Easy exit plan if anything feels off',
+              ].map((label) => (
+                <View key={label} style={styles.safetyCheck}>
+                  <Ionicons
+                    color={palette.sage}
+                    name="checkmark-circle-outline"
+                    size={18}
+                  />
+                  <Text style={styles.safetyCheckText}>{label}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.safetyPlanActions}>
+              <Pressable
+                accessibilityHint="Opens your device share sheet with this date plan"
+                accessibilityRole="button"
+                onPress={() => void shareDatePlan()}
+                style={({ pressed }) => [
+                  styles.shareButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons
+                  color={palette.white}
+                  name="share-outline"
+                  size={18}
+                />
+                <Text style={styles.shareButtonText}>Share date plan</Text>
+              </Pressable>
+              {item.venue?.address_public ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => void openVenueMap()}
+                  style={({ pressed }) => [
+                    styles.mapButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons
+                    color={palette.brand}
+                    name="navigate-outline"
+                    size={18}
+                  />
+                  <Text style={styles.mapButtonText}>Open in maps</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
 
         {item.reschedule_count > 0 ? (
           <Text
@@ -654,6 +779,104 @@ const styles = StyleSheet.create({
     backgroundColor: palette.border,
     height: 1,
     marginVertical: 17,
+  },
+  safetyPlan: {
+    backgroundColor: palette.sageSoft,
+    borderColor: '#C9DCD2',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: space.xl,
+    padding: space.md,
+  },
+  safetyPlanHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  safetyPlanIcon: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderRadius: radius.sm,
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
+  safetyPlanCopy: {
+    flex: 1,
+  },
+  safetyPlanEyebrow: {
+    color: palette.sage,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  safetyPlanTitle: {
+    color: palette.ink,
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 21,
+    marginTop: 2,
+  },
+  safetyPlanBody: {
+    color: palette.inkSoft,
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: space.sm,
+  },
+  safetyChecks: {
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  safetyCheck: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.xs,
+  },
+  safetyCheckText: {
+    color: palette.sage,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  safetyPlanActions: {
+    gap: space.xs,
+    marginTop: space.lg,
+  },
+  shareButton: {
+    alignItems: 'center',
+    backgroundColor: palette.sage,
+    borderRadius: radius.sm,
+    flexDirection: 'row',
+    gap: space.xs,
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: space.md,
+  },
+  shareButtonText: {
+    color: palette.white,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  mapButton: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: space.xs,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: space.md,
+  },
+  mapButtonText: {
+    color: palette.brand,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.76,
   },
   inlineError: {
     backgroundColor: palette.dangerSoft,

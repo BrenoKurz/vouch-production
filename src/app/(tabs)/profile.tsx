@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
@@ -25,6 +26,7 @@ import {
 } from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
+import type { IntakeEnvelope, MemberIntake } from "@/types/intake";
 import type {
   MemberProfile,
   MemberProfilePrompt,
@@ -90,6 +92,7 @@ export default function ProfileScreen() {
   const { session, signOut } = useAuth();
 
   const [profile, setProfile] = useState<MemberProfile | null>(null);
+  const [intake, setIntake] = useState<MemberIntake | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -117,12 +120,19 @@ export default function ProfileScreen() {
       setErrorMessage(null);
 
       try {
-        const response = await apiGet<ProfileEnvelope>(
-          "/members/me/profile",
-          accessToken,
-        );
+        const [profileResult, intakeResult] = await Promise.allSettled([
+          apiGet<ProfileEnvelope>("/members/me/profile", accessToken),
+          apiGet<IntakeEnvelope>("/members/me/intake", accessToken),
+        ]);
 
-        setProfile(response.data);
+        if (profileResult.status === "rejected") {
+          throw profileResult.reason;
+        }
+
+        setProfile(profileResult.value.data);
+        if (intakeResult.status === "fulfilled") {
+          setIntake(intakeResult.value.data);
+        }
       } catch (error) {
         setErrorMessage(
           error instanceof ApiError
@@ -250,6 +260,41 @@ export default function ProfileScreen() {
     );
   }
 
+  const approvedPhoto = intake?.profile_photos.some(
+    (photo) =>
+      photo.screen_status === "pass" ||
+      photo.screen_status === "override_pass",
+  );
+  const completedPromptCount = profile.prompts.filter((prompt) =>
+    prompt.answer.trim(),
+  ).length;
+  const strengthSignals = [
+    Boolean(profile.neighborhood),
+    Boolean(profile.relationship_intent),
+    Boolean(profile.seeking),
+    Boolean(profile.dating_radius_miles),
+    Boolean(profile.kids_status),
+    Boolean(profile.kids_preference),
+    approvedPhoto,
+    completedPromptCount >= 1,
+    completedPromptCount >= 2,
+    completedPromptCount >= 3,
+  ];
+  const strengthScore = Math.round(
+    (strengthSignals.filter(Boolean).length / strengthSignals.length) * 100,
+  );
+  const strengthSuggestions = [
+    !approvedPhoto ? "Add an approved primary photo" : null,
+    !profile.relationship_intent ? "Clarify your relationship goal" : null,
+    !profile.seeking ? "Share who you would like to meet" : null,
+    !profile.dating_radius_miles ? "Set a comfortable dating radius" : null,
+    completedPromptCount < 3
+      ? `Complete ${3 - completedPromptCount} more profile ${
+          3 - completedPromptCount === 1 ? "prompt" : "prompts"
+        }`
+      : null,
+  ].filter((item): item is string => Boolean(item));
+
   return (
     <AppScreen>
       <ScrollView
@@ -286,6 +331,7 @@ export default function ProfileScreen() {
         </View>
 
         <Pressable
+          accessibilityRole="button"
           onPress={() => router.push("/edit-profile")}
           style={({ pressed }) => [
             styles.editButton,
@@ -295,11 +341,104 @@ export default function ProfileScreen() {
           <Text style={styles.editButtonText}>Edit profile</Text>
         </Pressable>
 
+        <Pressable
+          accessibilityHint="Opens your private profile photo manager"
+          accessibilityRole="button"
+          onPress={() => router.push("/profile-photos")}
+          style={({ pressed }) => [
+            styles.photoManager,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.photoManagerIcon}>
+            <Ionicons
+              color={palette.brand}
+              name="camera-outline"
+              size={24}
+            />
+          </View>
+          <View style={styles.photoManagerCopy}>
+            <Text style={styles.photoManagerTitle}>Profile photos</Text>
+            <Text style={styles.photoManagerBody}>
+              {approvedPhoto
+                ? "Your primary photo is approved. Update it anytime."
+                : intake?.profile_photos.length
+                  ? "Your latest photo is in private review."
+                  : "Add the photo members will see first."}
+            </Text>
+          </View>
+          <View style={styles.photoManagerAction}>
+            <Text style={styles.photoManagerActionText}>
+              {intake?.profile_photos.length ? "Manage" : "Add"}
+            </Text>
+            <Ionicons
+              color={palette.brand}
+              name="chevron-forward"
+              size={17}
+            />
+          </View>
+        </Pressable>
+
         {errorMessage ? (
           <View style={styles.warningCard}>
             <Text style={styles.warningText}>{errorMessage}</Text>
           </View>
         ) : null}
+
+        <View style={styles.section}>
+          <View style={styles.strengthHeader}>
+            <View style={styles.strengthCopy}>
+              <Text style={styles.sectionTitle}>Profile strength</Text>
+              <Text style={styles.strengthBody}>
+                More complete profiles give your matchmaker better context and
+                make introductions easier to trust.
+              </Text>
+            </View>
+            <Text style={styles.strengthScore}>{strengthScore}%</Text>
+          </View>
+          <View
+            accessibilityLabel={`Profile strength ${strengthScore} percent`}
+            accessibilityRole="progressbar"
+            accessibilityValue={{
+              min: 0,
+              max: 100,
+              now: strengthScore,
+            }}
+            style={styles.strengthTrack}
+          >
+            <View
+              style={[
+                styles.strengthFill,
+                { width: `${strengthScore}%` },
+              ]}
+            />
+          </View>
+          {strengthSuggestions.length ? (
+            <View style={styles.suggestionList}>
+              {strengthSuggestions.slice(0, 3).map((suggestion) => (
+                <View key={suggestion} style={styles.suggestionRow}>
+                  <Ionicons
+                    color={palette.amber}
+                    name="sparkles-outline"
+                    size={16}
+                  />
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.completeRow}>
+              <Ionicons
+                color={palette.sage}
+                name="checkmark-circle"
+                size={18}
+              />
+              <Text style={styles.completeText}>
+                Your profile gives Vouch a rich, complete picture of you.
+              </Text>
+            </View>
+          )}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Membership progress</Text>
@@ -593,6 +732,46 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
+  photoManager: {
+    alignItems: "center",
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: space.sm,
+    marginBottom: space.xl,
+    padding: space.md,
+  },
+  photoManagerIcon: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.sm,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  photoManagerCopy: {
+    flex: 1,
+  },
+  photoManagerTitle: {
+    color: palette.ink,
+    ...typography.bodyStrong,
+  },
+  photoManagerBody: {
+    color: palette.muted,
+    marginTop: 2,
+    ...typography.small,
+  },
+  photoManagerAction: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 2,
+  },
+  photoManagerActionText: {
+    color: palette.brand,
+    ...typography.caption,
+  },
   warningCard: {
     backgroundColor: palette.amberSoft,
     borderColor: "#E6D5B5",
@@ -613,6 +792,64 @@ const styles = StyleSheet.create({
     color: palette.ink,
     marginBottom: 11,
     ...typography.heading,
+  },
+  strengthHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: space.md,
+    justifyContent: "space-between",
+  },
+  strengthCopy: {
+    flex: 1,
+  },
+  strengthBody: {
+    color: palette.muted,
+    marginTop: -5,
+    ...typography.small,
+  },
+  strengthScore: {
+    color: palette.brand,
+    fontFamily: "Georgia",
+    fontSize: 28,
+    fontWeight: "700",
+    lineHeight: 32,
+  },
+  strengthTrack: {
+    backgroundColor: palette.canvasStrong,
+    borderRadius: radius.pill,
+    height: 9,
+    marginTop: space.md,
+    overflow: "hidden",
+  },
+  strengthFill: {
+    backgroundColor: palette.sage,
+    borderRadius: radius.pill,
+    height: "100%",
+  },
+  suggestionList: {
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  suggestionRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+  },
+  suggestionText: {
+    color: palette.inkSoft,
+    flex: 1,
+    ...typography.small,
+  },
+  completeRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  completeText: {
+    color: palette.sage,
+    flex: 1,
+    ...typography.small,
   },
   progressCard: {
     backgroundColor: palette.surface,

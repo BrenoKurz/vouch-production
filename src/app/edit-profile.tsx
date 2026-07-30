@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
@@ -12,8 +13,18 @@ import {
   View,
 } from "react-native";
 
-import { AppScreen, StackHeader } from "@/components/vouch-ui";
-import { layout } from "@/constants/design";
+import {
+  AppScreen,
+  InlineNotice,
+  StackHeader,
+} from "@/components/vouch-ui";
+import {
+  layout,
+  palette,
+  radius,
+  space,
+  typography,
+} from "@/constants/design";
 import { ApiError, apiGet, apiPatch } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import type {
@@ -30,6 +41,60 @@ type PromptDraft = {
   answer: string;
 };
 
+type ChoiceOption = {
+  label: string;
+  value: string;
+};
+
+const RELATIONSHIP_INTENTS: ChoiceOption[] = [
+  { label: "Life partner", value: "life_partner" },
+  { label: "Long-term relationship", value: "long_term_relationship" },
+  {
+    label: "Long-term, open to short",
+    value: "long_term_open_to_short",
+  },
+  { label: "Still figuring it out", value: "figuring_it_out" },
+];
+
+const SEEKING_OPTIONS: ChoiceOption[] = [
+  { label: "Women", value: "women" },
+  { label: "Men", value: "men" },
+  { label: "Nonbinary people", value: "nonbinary_people" },
+  { label: "Everyone", value: "everyone" },
+];
+
+const RADIUS_OPTIONS: ChoiceOption[] = [5, 10, 15, 25, 50, 100].map(
+  (value) => ({
+    label: `${value} mi`,
+    value: String(value),
+  }),
+);
+
+const KIDS_STATUS_OPTIONS: ChoiceOption[] = [
+  { label: "Have children", value: "have_children" },
+  { label: "No children", value: "no_children" },
+  { label: "Prefer not to say", value: "prefer_not_to_say" },
+];
+
+const KIDS_PREFERENCE_OPTIONS: ChoiceOption[] = [
+  { label: "Want children", value: "want_children" },
+  { label: "Open to children", value: "open_to_children" },
+  { label: "Do not want children", value: "do_not_want_children" },
+  { label: "Not sure yet", value: "not_sure" },
+];
+
+const PROMPT_LIBRARY = [
+  "A small thing that makes my week better is…",
+  "The kind of relationship I want to build feels like…",
+  "We’ll get along if…",
+  "My ideal ordinary Sunday looks like…",
+  "Something I’m genuinely curious about is…",
+  "The quickest way to make me laugh is…",
+  "A value I try to live by is…",
+  "A green flag I notice right away is…",
+  "A great first date would include…",
+];
+
 function createPromptDrafts(prompts: MemberProfilePrompt[]): PromptDraft[] {
   return Array.from({ length: 3 }, (_, index) => {
     const prompt = prompts[index];
@@ -45,6 +110,24 @@ function createPromptDrafts(prompts: MemberProfilePrompt[]): PromptDraft[] {
 function nullableText(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeChoice(
+  value: string | null,
+  options: ChoiceOption[],
+) {
+  if (!value) {
+    return "";
+  }
+
+  const normalized = value.trim().toLocaleLowerCase().replaceAll(" ", "_");
+  const matchingOption = options.find(
+    (option) =>
+      option.value.toLocaleLowerCase() === normalized ||
+      option.label.toLocaleLowerCase() === value.trim().toLocaleLowerCase(),
+  );
+
+  return matchingOption?.value ?? value;
 }
 
 export default function EditProfileScreen() {
@@ -67,15 +150,21 @@ export default function EditProfileScreen() {
   const populateForm = useCallback((member: MemberProfile) => {
     setProfile(member);
     setNeighborhood(member.neighborhood ?? "");
-    setRelationshipIntent(member.relationship_intent ?? "");
-    setSeeking(member.seeking ?? "");
+    setRelationshipIntent(
+      normalizeChoice(member.relationship_intent, RELATIONSHIP_INTENTS),
+    );
+    setSeeking(normalizeChoice(member.seeking, SEEKING_OPTIONS));
     setDatingRadius(
       member.dating_radius_miles === null
         ? ""
         : String(member.dating_radius_miles),
     );
-    setKidsStatus(member.kids_status ?? "");
-    setKidsPreference(member.kids_preference ?? "");
+    setKidsStatus(
+      normalizeChoice(member.kids_status, KIDS_STATUS_OPTIONS),
+    );
+    setKidsPreference(
+      normalizeChoice(member.kids_preference, KIDS_PREFERENCE_OPTIONS),
+    );
     setPrompts(createPromptDrafts(member.prompts));
   }, []);
 
@@ -273,13 +362,45 @@ export default function EditProfileScreen() {
             </Text>
 
             {errorMessage ? (
-              <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
+              <InlineNotice message={errorMessage} tone="danger" />
             ) : null}
 
+            <Pressable
+              accessibilityHint="Opens the private profile photo manager"
+              accessibilityRole="button"
+              onPress={() => router.push("/profile-photos")}
+              style={({ pressed }) => [
+                styles.photoCallout,
+                pressed && styles.pressed,
+              ]}
+            >
+              <View style={styles.photoCalloutIcon}>
+                <Ionicons
+                  color={palette.brand}
+                  name="camera-outline"
+                  size={23}
+                />
+              </View>
+              <View style={styles.photoCalloutCopy}>
+                <Text style={styles.photoCalloutTitle}>Profile photos</Text>
+                <Text style={styles.photoCalloutBody}>
+                  Add or replace your primary photo and see its private review
+                  status.
+                </Text>
+              </View>
+              <Ionicons
+                color={palette.brand}
+                name="chevron-forward"
+                size={19}
+              />
+            </Pressable>
+
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Basics</Text>
+              <Text style={styles.sectionTitle}>Dating preferences</Text>
+              <Text style={styles.sectionDescription}>
+                Guided choices make your intent clearer while still leaving
+                room for your own words.
+              </Text>
 
               <FormField
                 label="Neighborhood"
@@ -289,45 +410,46 @@ export default function EditProfileScreen() {
                 maxLength={120}
               />
 
-              <FormField
-                label="Relationship intent"
+              <ChoiceField
+                customPlaceholder="Describe what you are looking for"
+                label="Relationship goal"
                 value={relationshipIntent}
-                onChangeText={setRelationshipIntent}
-                placeholder="Long-term relationship"
-                maxLength={120}
+                onChange={setRelationshipIntent}
+                options={RELATIONSHIP_INTENTS}
               />
 
-              <FormField
+              <ChoiceField
+                customPlaceholder="Describe who you would like to meet"
                 label="Interested in"
+                onChange={setSeeking}
+                options={SEEKING_OPTIONS}
                 value={seeking}
-                onChangeText={setSeeking}
-                placeholder="Women"
-                maxLength={120}
               />
 
-              <FormField
-                label="Dating radius in miles"
+              <ChoiceField
+                customKeyboardType="number-pad"
+                customMaxLength={3}
+                customPlaceholder="Miles from 1 to 100"
+                label="Dating radius"
+                onChange={setDatingRadius}
+                options={RADIUS_OPTIONS}
                 value={datingRadius}
-                onChangeText={setDatingRadius}
-                placeholder="25"
-                keyboardType="number-pad"
-                maxLength={3}
               />
 
-              <FormField
-                label="Kids status"
+              <ChoiceField
+                customPlaceholder="Share what feels right for you"
+                label="Do you have children?"
+                onChange={setKidsStatus}
+                options={KIDS_STATUS_OPTIONS}
                 value={kidsStatus}
-                onChangeText={setKidsStatus}
-                placeholder="No children"
-                maxLength={120}
               />
 
-              <FormField
-                label="Kids preference"
+              <ChoiceField
+                customPlaceholder="Describe your family plans"
+                label="Family plans"
+                onChange={setKidsPreference}
+                options={KIDS_PREFERENCE_OPTIONS}
                 value={kidsPreference}
-                onChangeText={setKidsPreference}
-                placeholder="Open to children"
-                maxLength={120}
                 isLast
               />
             </View>
@@ -341,7 +463,54 @@ export default function EditProfileScreen() {
 
               {prompts.map((prompt, index) => (
                 <View key={prompt.id} style={styles.promptCard}>
-                  <Text style={styles.promptNumber}>Prompt {index + 1}</Text>
+                  <View style={styles.promptHeader}>
+                    <Text style={styles.promptNumber}>
+                      Prompt {index + 1}
+                    </Text>
+                    <Text style={styles.promptStatus}>
+                      {prompt.question.trim() && prompt.answer.trim()
+                        ? "Ready"
+                        : "Incomplete"}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.promptGuideLabel}>
+                    Choose a conversation-worthy prompt
+                  </Text>
+                  <ScrollView
+                    contentContainerStyle={styles.promptSuggestions}
+                    horizontal
+                    keyboardShouldPersistTaps="handled"
+                    showsHorizontalScrollIndicator={false}
+                  >
+                    {PROMPT_LIBRARY.map((question) => {
+                      const selected = prompt.question === question;
+
+                      return (
+                        <Pressable
+                          accessibilityRole="button"
+                          key={question}
+                          onPress={() =>
+                            updatePrompt(index, "question", question)
+                          }
+                          style={[
+                            styles.promptSuggestion,
+                            selected && styles.promptSuggestionSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.promptSuggestionText,
+                              selected &&
+                                styles.promptSuggestionTextSelected,
+                            ]}
+                          >
+                            {question}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
 
                   <TextInput
                     maxLength={160}
@@ -349,8 +518,8 @@ export default function EditProfileScreen() {
                       updatePrompt(index, "question", value)
                     }
                     placeholder="A question that says something about you"
-                    placeholderTextColor="#A49B93"
-                    style={styles.input}
+                    placeholderTextColor={palette.subtle}
+                    style={[styles.input, styles.customPromptInput]}
                     value={prompt.question}
                   />
 
@@ -360,21 +529,44 @@ export default function EditProfileScreen() {
                     onChangeText={(value) =>
                       updatePrompt(index, "answer", value)
                     }
-                    placeholder="Your answer"
-                    placeholderTextColor="#A49B93"
+                    placeholder="Share a specific detail, story, or opinion"
+                    placeholderTextColor={palette.subtle}
                     style={[styles.input, styles.answerInput]}
                     textAlignVertical="top"
                     value={prompt.answer}
                   />
 
-                  <Text style={styles.characterCount}>
-                    {prompt.answer.length}/500
-                  </Text>
+                  <View style={styles.answerFooter}>
+                    <View style={styles.answerCoach}>
+                      <Ionicons
+                        color={
+                          prompt.answer.trim().length >= 40
+                            ? palette.sage
+                            : palette.amber
+                        }
+                        name={
+                          prompt.answer.trim().length >= 40
+                            ? "checkmark-circle-outline"
+                            : "sparkles-outline"
+                        }
+                        size={15}
+                      />
+                      <Text style={styles.answerCoachText}>
+                        {prompt.answer.trim().length >= 40
+                          ? "Specific enough to start a conversation"
+                          : "Aim for 2–4 vivid, specific sentences"}
+                      </Text>
+                    </View>
+                    <Text style={styles.characterCount}>
+                      {prompt.answer.length}/500
+                    </Text>
+                  </View>
                 </View>
               ))}
             </View>
 
             <Pressable
+              accessibilityRole="button"
               disabled={isSaving}
               onPress={() => void handleSave()}
               style={({ pressed }) => [
@@ -391,6 +583,7 @@ export default function EditProfileScreen() {
             </Pressable>
 
             <Pressable
+              accessibilityRole="button"
               disabled={isSaving}
               onPress={() => router.back()}
               style={({ pressed }) => [
@@ -440,6 +633,134 @@ function FormField({
   );
 }
 
+function ChoiceField({
+  label,
+  value,
+  onChange,
+  options,
+  customPlaceholder,
+  customKeyboardType = "default",
+  customMaxLength = 120,
+  isLast = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: ChoiceOption[];
+  customPlaceholder: string;
+  customKeyboardType?: "default" | "number-pad";
+  customMaxLength?: number;
+  isLast?: boolean;
+}) {
+  const matchesOption = options.some((option) => option.value === value);
+  const [customMode, setCustomMode] = useState(
+    Boolean(value && !matchesOption),
+  );
+  const showCustom = customMode || Boolean(value && !matchesOption);
+
+  function chooseOption(option: ChoiceOption) {
+    setCustomMode(false);
+    onChange(option.value);
+  }
+
+  function chooseCustom() {
+    setCustomMode(true);
+    if (matchesOption) {
+      onChange("");
+    }
+  }
+
+  return (
+    <View style={[styles.choiceField, isLast && styles.fieldLast]}>
+      <View style={styles.choiceLabelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {value ? (
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => {
+              setCustomMode(false);
+              onChange("");
+            }}
+          >
+            <Text style={styles.clearChoice}>Clear</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={styles.choiceGrid}>
+        {options.map((option) => {
+          const selected = value === option.value && !showCustom;
+
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              key={option.value}
+              onPress={() => chooseOption(option)}
+              style={[
+                styles.choiceChip,
+                selected && styles.choiceChipSelected,
+              ]}
+            >
+              {selected ? (
+                <Ionicons
+                  color={palette.white}
+                  name="checkmark"
+                  size={15}
+                />
+              ) : null}
+              <Text
+                style={[
+                  styles.choiceChipText,
+                  selected && styles.choiceChipTextSelected,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: showCustom }}
+          onPress={chooseCustom}
+          style={[
+            styles.choiceChip,
+            showCustom && styles.choiceChipSelected,
+          ]}
+        >
+          <Ionicons
+            color={showCustom ? palette.white : palette.brand}
+            name="create-outline"
+            size={15}
+          />
+          <Text
+            style={[
+              styles.choiceChipText,
+              showCustom && styles.choiceChipTextSelected,
+            ]}
+          >
+            My own words
+          </Text>
+        </Pressable>
+      </View>
+
+      {showCustom ? (
+        <TextInput
+          autoFocus={!value}
+          keyboardType={customKeyboardType}
+          maxLength={customMaxLength}
+          onChangeText={onChange}
+          placeholder={customPlaceholder}
+          placeholderTextColor={palette.subtle}
+          style={[styles.input, styles.customChoiceInput]}
+          value={matchesOption ? "" : value}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
@@ -484,6 +805,37 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 8,
   },
+  photoCallout: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderColor: palette.brandSoftStrong,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: space.sm,
+    marginTop: space.xl,
+    padding: space.md,
+  },
+  photoCalloutIcon: {
+    alignItems: "center",
+    backgroundColor: palette.surface,
+    borderRadius: radius.sm,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  photoCalloutCopy: {
+    flex: 1,
+  },
+  photoCalloutTitle: {
+    color: palette.ink,
+    ...typography.bodyStrong,
+  },
+  photoCalloutBody: {
+    color: palette.muted,
+    marginTop: 2,
+    ...typography.small,
+  },
   errorCard: {
     backgroundColor: "#F8E1DE",
     borderColor: "#E1BDB7",
@@ -525,6 +877,53 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     paddingBottom: 0,
   },
+  choiceField: {
+    borderBottomColor: palette.border,
+    borderBottomWidth: 1,
+    paddingVertical: space.md,
+  },
+  choiceLabelRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  clearChoice: {
+    color: palette.brand,
+    ...typography.caption,
+  },
+  choiceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.xs,
+    marginTop: space.sm,
+  },
+  choiceChip: {
+    alignItems: "center",
+    backgroundColor: palette.canvas,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 5,
+    minHeight: 42,
+    paddingHorizontal: space.sm,
+    paddingVertical: 8,
+  },
+  choiceChipSelected: {
+    backgroundColor: palette.brand,
+    borderColor: palette.brand,
+  },
+  choiceChipText: {
+    color: palette.inkSoft,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  choiceChipTextSelected: {
+    color: palette.white,
+  },
+  customChoiceInput: {
+    marginTop: space.sm,
+  },
   label: {
     color: "#746D66",
     fontSize: 12,
@@ -555,6 +954,51 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     textTransform: "uppercase",
   },
+  promptHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  promptStatus: {
+    color: palette.brand,
+    ...typography.caption,
+  },
+  promptGuideLabel: {
+    color: palette.inkSoft,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: space.xs,
+  },
+  promptSuggestions: {
+    gap: space.xs,
+    paddingBottom: space.xxs,
+    paddingTop: space.sm,
+  },
+  promptSuggestion: {
+    backgroundColor: palette.canvas,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    maxWidth: 260,
+    paddingHorizontal: space.sm,
+    paddingVertical: 10,
+  },
+  promptSuggestionSelected: {
+    backgroundColor: palette.brandSoft,
+    borderColor: palette.brand,
+  },
+  promptSuggestionText: {
+    color: palette.inkSoft,
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  promptSuggestionTextSelected: {
+    color: palette.brand,
+  },
+  customPromptInput: {
+    marginTop: space.sm,
+  },
   answerInput: {
     marginTop: 10,
     minHeight: 108,
@@ -562,8 +1006,26 @@ const styles = StyleSheet.create({
   characterCount: {
     color: "#918880",
     fontSize: 11,
-    marginTop: 6,
     textAlign: "right",
+  },
+  answerFooter: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: space.sm,
+    justifyContent: "space-between",
+    marginTop: space.xs,
+  },
+  answerCoach: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    flex: 1,
+    gap: 5,
+  },
+  answerCoachText: {
+    color: palette.muted,
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
   },
   saveButton: {
     alignItems: "center",

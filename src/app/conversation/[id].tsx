@@ -69,6 +69,75 @@ function formatExpiry(value: string) {
   }).format(date);
 }
 
+function compactCopy(value: string, length = 74) {
+  const clean = value.replace(/\s+/g, ' ').trim();
+  return clean.length > length ? `${clean.slice(0, length - 1)}…` : clean;
+}
+
+function buildConversationStarters(
+  name: string,
+  prompts: Conversation['counterpart_profile']['prompts'],
+) {
+  const suggestions: string[] = [];
+
+  for (const prompt of prompts) {
+    if (prompt.answer.trim()) {
+      suggestions.push(
+        `Your answer about “${compactCopy(
+          prompt.answer,
+          58,
+        )}” caught my attention—what’s the story behind it?`,
+      );
+    }
+
+    if (prompt.question.trim()) {
+      suggestions.push(
+        `I liked your take on “${compactCopy(
+          prompt.question,
+          58,
+        )}” What made you choose that answer?`,
+      );
+    }
+
+    if (suggestions.length >= 3) {
+      break;
+    }
+  }
+
+  const fallbacks = [
+    `What’s something you’ve been looking forward to lately, ${name}?`,
+    `What would make an ordinary weekend feel great to you?`,
+    `What’s a topic you can happily talk about for way too long?`,
+  ];
+
+  return [...suggestions, ...fallbacks].slice(0, 3);
+}
+
+function reviewDraft(value: string) {
+  const trimmed = value.trim();
+
+  if (trimmed.length < 20) {
+    return null;
+  }
+
+  const letters = trimmed.match(/[A-Za-z]/g) ?? [];
+  const uppercase = trimmed.match(/[A-Z]/g) ?? [];
+
+  if (letters.length >= 12 && uppercase.length / letters.length > 0.8) {
+    return 'This reads mostly in capital letters. A calmer tone may feel easier to receive.';
+  }
+
+  if (/[!?]{4,}/.test(trimmed)) {
+    return 'A few fewer exclamation or question marks may make this feel more natural.';
+  }
+
+  if (trimmed.length > 1000) {
+    return 'This is a thoughtful note. Splitting it into a shorter message may make it easier to respond to.';
+  }
+
+  return null;
+}
+
 export default function ConversationScreen() {
   const params = useLocalSearchParams<{
     id?: string | string[];
@@ -78,6 +147,7 @@ export default function ConversationScreen() {
   const { session, signOut } = useAuth();
   const accessToken = session?.access_token;
   const listRef = useRef<FlatList<ConversationMessage>>(null);
+  const inputRef = useRef<TextInput>(null);
 
   const [conversation, setConversation] =
     useState<Conversation | null>(null);
@@ -98,6 +168,17 @@ export default function ConversationScreen() {
         : null,
     [conversation],
   );
+  const conversationStarters = useMemo(
+    () =>
+      conversation
+        ? buildConversationStarters(
+            conversation.counterpart_profile.first_name,
+            conversation.counterpart_profile.prompts,
+          )
+        : [],
+    [conversation],
+  );
+  const draftReview = useMemo(() => reviewDraft(draft), [draft]);
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh' | 'poll' = 'refresh') => {
@@ -386,6 +467,18 @@ export default function ConversationScreen() {
           renderItem={({ item }) => (
             <MessageBubble message={item} />
           )}
+          ListHeaderComponent={
+            isOpen && conversation.messages.length <= 3 ? (
+              <ConversationCoach
+                name={counterpartName}
+                onChoose={(suggestion) => {
+                  setDraft(suggestion);
+                  requestAnimationFrame(() => inputRef.current?.focus());
+                }}
+                suggestions={conversationStarters}
+              />
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.matchIcon}>
@@ -537,42 +630,59 @@ export default function ConversationScreen() {
         </Pressable>
 
         {isOpen ? (
-          <View style={styles.composer}>
-            <TextInput
-              accessibilityLabel="Message"
-              editable={!isSending}
-              maxLength={4000}
-              multiline
-              onChangeText={setDraft}
-              onSubmitEditing={() => {
-                if (canSend) void sendMessage();
-              }}
-              placeholder={`Message ${counterpartName}`}
-              placeholderTextColor={palette.subtle}
-              returnKeyType="send"
-              style={styles.input}
-              value={draft}
-            />
-
-            <Pressable
-              accessibilityLabel="Send message"
-              disabled={!canSend}
-              onPress={() => void sendMessage()}
-              style={[
-                styles.sendButton,
-                !canSend && styles.sendButtonDisabled,
-              ]}
-            >
-              {isSending ? (
-                <ActivityIndicator color={palette.white} size="small" />
-              ) : (
+          <View>
+            {draftReview ? (
+              <View
+                accessibilityLiveRegion="polite"
+                style={styles.draftReview}
+              >
                 <Ionicons
-                  color={palette.white}
-                  name="arrow-up"
-                  size={21}
+                  color={palette.amber}
+                  name="heart-outline"
+                  size={16}
                 />
-              )}
-            </Pressable>
+                <Text style={styles.draftReviewText}>{draftReview}</Text>
+              </View>
+            ) : null}
+            <View style={styles.composer}>
+              <TextInput
+                accessibilityLabel="Message"
+                editable={!isSending}
+                maxLength={4000}
+                multiline
+                onChangeText={setDraft}
+                onSubmitEditing={() => {
+                  if (canSend) void sendMessage();
+                }}
+                placeholder={`Message ${counterpartName}`}
+                placeholderTextColor={palette.subtle}
+                ref={inputRef}
+                returnKeyType="send"
+                style={styles.input}
+                value={draft}
+              />
+
+              <Pressable
+                accessibilityLabel="Send message"
+                accessibilityRole="button"
+                disabled={!canSend}
+                onPress={() => void sendMessage()}
+                style={[
+                  styles.sendButton,
+                  !canSend && styles.sendButtonDisabled,
+                ]}
+              >
+                {isSending ? (
+                  <ActivityIndicator color={palette.white} size="small" />
+                ) : (
+                  <Ionicons
+                    color={palette.white}
+                    name="arrow-up"
+                    size={21}
+                  />
+                )}
+              </Pressable>
+            </View>
           </View>
         ) : (
           <View style={styles.closedBanner}>
@@ -588,6 +698,61 @@ export default function ConversationScreen() {
         )}
       </KeyboardAvoidingView>
     </AppScreen>
+  );
+}
+
+function ConversationCoach({
+  name,
+  suggestions,
+  onChoose,
+}: {
+  name: string;
+  suggestions: string[];
+  onChoose: (suggestion: string) => void;
+}) {
+  return (
+    <View style={styles.coachCard}>
+      <View style={styles.coachHeader}>
+        <View style={styles.coachIcon}>
+          <Ionicons
+            color={palette.brand}
+            name="sparkles-outline"
+            size={19}
+          />
+        </View>
+        <View style={styles.coachHeaderCopy}>
+          <Text style={styles.coachEyebrow}>PRIVATE CONVERSATION COACH</Text>
+          <Text style={styles.coachTitle}>
+            A thoughtful way to start with {name}
+          </Text>
+        </View>
+      </View>
+      <Text style={styles.coachBody}>
+        These ideas are created on your device from the profile Vouch already
+        shared with you. Tap one to edit it in your own voice.
+      </Text>
+      <View style={styles.coachSuggestions}>
+        {suggestions.map((suggestion) => (
+          <Pressable
+            accessibilityHint="Adds this suggestion to your message draft"
+            accessibilityRole="button"
+            key={suggestion}
+            onPress={() => onChoose(suggestion)}
+            style={({ pressed }) => [
+              styles.coachSuggestion,
+              pressed && styles.coachSuggestionPressed,
+            ]}
+          >
+            <Text style={styles.coachSuggestionText}>{suggestion}</Text>
+            <Ionicons
+              color={palette.brand}
+              name="add-circle-outline"
+              size={19}
+            />
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -686,6 +851,74 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 9,
     textAlign: 'center',
+  },
+  coachCard: {
+    backgroundColor: palette.brandSoft,
+    borderColor: palette.brandSoftStrong,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 14,
+  },
+  coachHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  coachIcon: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderRadius: radius.sm,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  coachHeaderCopy: {
+    flex: 1,
+  },
+  coachEyebrow: {
+    color: palette.brand,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  coachTitle: {
+    color: palette.ink,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 20,
+    marginTop: 2,
+  },
+  coachBody: {
+    color: palette.muted,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 10,
+  },
+  coachSuggestions: {
+    gap: 7,
+    marginTop: 11,
+  },
+  coachSuggestion: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 9,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  coachSuggestionPressed: {
+    opacity: 0.74,
+  },
+  coachSuggestionText: {
+    color: palette.inkSoft,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   messageRow: { width: '100%' },
   myMessageRow: { alignItems: 'flex-end' },
@@ -826,6 +1059,22 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
+  },
+  draftReview: {
+    alignItems: 'flex-start',
+    backgroundColor: palette.amberSoft,
+    borderTopColor: '#E6D5B5',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  draftReviewText: {
+    color: palette.amber,
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
   },
   input: {
     backgroundColor: palette.canvas,

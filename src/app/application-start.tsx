@@ -17,6 +17,7 @@ import {
   InlineNotice,
   VouchWordmark,
 } from '@/components/vouch-ui';
+import { DateOfBirthField } from '@/components/date-of-birth-field';
 import {
   layout,
   palette,
@@ -25,26 +26,13 @@ import {
   typography,
 } from '@/constants/design';
 import { ApiError, apiPost } from '@/lib/api';
+import { isEligibleDateOfBirth } from '@/lib/date-of-birth';
 import { useAuth } from '@/providers/auth-provider';
 import { useMemberAccess } from '@/providers/member-access-provider';
 import type {
   ApplicationRequest,
   ApplicationResponse,
 } from '@/types/application';
-
-function validDateOfBirth(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const [year, month, day] = value.split('-').map(Number);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-
-  const exact =
-    parsed.getUTCFullYear() === year &&
-    parsed.getUTCMonth() === month - 1 &&
-    parsed.getUTCDate() === day;
-
-  return exact && parsed.getTime() <= Date.now();
-}
 
 export default function ApplicationStartScreen() {
   const { session, signOut } = useAuth();
@@ -85,9 +73,9 @@ export default function ApplicationStartScreen() {
       errors.first_name = ['Enter your first name.'];
     }
 
-    if (!validDateOfBirth(dateOfBirth.trim())) {
+    if (!isEligibleDateOfBirth(dateOfBirth)) {
       errors.date_of_birth = [
-        'Enter a valid date in YYYY-MM-DD format.',
+        'Choose a valid birthday showing you are at least 18.',
       ];
     }
 
@@ -156,6 +144,15 @@ export default function ApplicationStartScreen() {
     }
   }
 
+  function handleDateOfBirthChange(value: string) {
+    setDateOfBirth(value);
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next.date_of_birth;
+      return next;
+    });
+  }
+
   return (
     <AppScreen includeBottomInset>
       <KeyboardAvoidingView
@@ -187,13 +184,10 @@ export default function ApplicationStartScreen() {
               value={firstName}
             />
 
-            <Field
+            <DateOfBirthField
+              disabled={isSubmitting}
               error={fieldErrors.date_of_birth?.[0]}
-              keyboardType="numbers-and-punctuation"
-              label="Date of birth"
-              maxLength={10}
-              onChangeText={setDateOfBirth}
-              placeholder="YYYY-MM-DD"
+              onChange={handleDateOfBirthChange}
               value={dateOfBirth}
             />
 

@@ -367,6 +367,64 @@ export default function IntroductionDetailScreen() {
           </View>
         ) : null}
 
+        <View style={styles.lensCard}>
+          <View style={styles.lensHeader}>
+            <View style={styles.lensIcon}>
+              <Ionicons
+                color={palette.brand}
+                name="compass-outline"
+                size={22}
+              />
+            </View>
+            <View style={styles.lensHeaderCopy}>
+              <Text style={styles.lensEyebrow}>VOUCH COMPATIBILITY LENS</Text>
+              <Text style={styles.lensTitle}>
+                Look for curiosity, not a score
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.lensBody}>
+            Chemistry cannot be reduced to a percentage. This introduction was
+            human-curated from both private dossiers; use these signals to
+            decide whether one conversation feels worth exploring.
+          </Text>
+          <View style={styles.lensSignals}>
+            <LensSignal
+              icon="heart-outline"
+              label="Human-curated"
+              value="Selected with both members’ goals and boundaries in mind"
+            />
+            <LensSignal
+              icon="chatbubbles-outline"
+              label="Conversation depth"
+              value={`${profile.prompts.length} ${
+                profile.prompts.length === 1 ? "prompt" : "prompts"
+              } to help you get beyond small talk`}
+            />
+            <LensSignal
+              icon="location-outline"
+              label="Local context"
+              value={`Based around ${profile.neighborhood}`}
+            />
+          </View>
+          {profile.prompts[0]?.answer ? (
+            <View style={styles.curiosityPrompt}>
+              <Ionicons
+                color={palette.sage}
+                name="sparkles-outline"
+                size={18}
+              />
+              <Text style={styles.curiosityText}>
+                Start with what made you curious about “
+                {profile.prompts[0].answer.length > 96
+                  ? `${profile.prompts[0].answer.slice(0, 95)}…`
+                  : profile.prompts[0].answer}
+                ”
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         {profile.prompts.map((prompt) => (
           <View key={prompt.id} style={styles.promptCard}>
             <Text style={styles.promptQuestion}>{prompt.question}</Text>
@@ -452,6 +510,28 @@ export default function IntroductionDetailScreen() {
         )}
       </ScrollView>
     </AppScreen>
+  );
+}
+
+function LensSignal({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.lensSignal}>
+      <View style={styles.lensSignalIcon}>
+        <Ionicons color={palette.brand} name={icon} size={18} />
+      </View>
+      <View style={styles.lensSignalCopy}>
+        <Text style={styles.lensSignalLabel}>{label}</Text>
+        <Text style={styles.lensSignalValue}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -545,6 +625,93 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 26,
     marginTop: 12,
+  },
+  lensCard: {
+    backgroundColor: palette.brandSoft,
+    borderColor: palette.brandSoftStrong,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: space.lg,
+    padding: space.md,
+  },
+  lensHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  lensIcon: {
+    alignItems: 'center',
+    backgroundColor: palette.surface,
+    borderRadius: radius.sm,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  lensHeaderCopy: {
+    flex: 1,
+  },
+  lensEyebrow: {
+    color: palette.brand,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  lensTitle: {
+    color: palette.ink,
+    fontSize: 17,
+    fontWeight: '800',
+    lineHeight: 22,
+    marginTop: 2,
+  },
+  lensBody: {
+    color: palette.inkSoft,
+    marginTop: space.sm,
+    ...typography.small,
+  },
+  lensSignals: {
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  lensSignal: {
+    alignItems: 'flex-start',
+    backgroundColor: palette.surface,
+    borderRadius: radius.sm,
+    flexDirection: 'row',
+    gap: space.sm,
+    padding: space.sm,
+  },
+  lensSignalIcon: {
+    alignItems: 'center',
+    backgroundColor: palette.canvas,
+    borderRadius: radius.pill,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  lensSignalCopy: {
+    flex: 1,
+  },
+  lensSignalLabel: {
+    color: palette.brand,
+    ...typography.caption,
+  },
+  lensSignalValue: {
+    color: palette.inkSoft,
+    marginTop: 2,
+    ...typography.small,
+  },
+  curiosityPrompt: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  curiosityText: {
+    color: palette.sage,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19,
   },
   promptCard: {
     borderBottomColor: palette.border,

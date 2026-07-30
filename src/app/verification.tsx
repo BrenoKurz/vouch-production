@@ -9,13 +9,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
+import { DateOfBirthField } from "@/components/date-of-birth-field";
 import { AppScreen, StackHeader } from "@/components/vouch-ui";
 import { layout } from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
+import { isEligibleDateOfBirth } from "@/lib/date-of-birth";
 import { useAuth } from "@/providers/auth-provider";
 import type {
   MemberVerification,
@@ -31,22 +32,6 @@ const STATE_LABELS: Record<VerificationState, string> = {
   verified: "Verified",
   rejected: "Needs attention",
 };
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidIsoDate(value: string) {
-  if (!DATE_PATTERN.test(value)) {
-    return false;
-  }
-
-  const parsed = new Date(`${value}T00:00:00.000Z`);
-
-  return (
-    !Number.isNaN(parsed.getTime()) &&
-    parsed.toISOString().slice(0, 10) === value &&
-    parsed.getTime() <= Date.now()
-  );
-}
 
 function formatTimestamp(value: string | null) {
   if (!value) {
@@ -132,8 +117,10 @@ export default function VerificationScreen() {
       return;
     }
 
-    if (!isValidIsoDate(normalizedDate)) {
-      setErrorMessage("Enter a valid date of birth in YYYY-MM-DD format.");
+    if (!isEligibleDateOfBirth(normalizedDate)) {
+      setErrorMessage(
+        "Choose a valid birthday showing you are at least 18.",
+      );
       return;
     }
 
@@ -254,26 +241,15 @@ export default function VerificationScreen() {
 
                 {verification.verification_state === "not_started" ? (
                   <View style={styles.formCard}>
-                    <Text style={styles.inputLabel}>Date of birth</Text>
-                    <TextInput
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!isSubmitting}
-                      keyboardType={
-                        Platform.OS === "ios"
-                          ? "numbers-and-punctuation"
-                          : "numeric"
-                      }
-                      maxLength={10}
-                      onChangeText={setDateOfBirth}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor="#A39A92"
-                      style={styles.input}
+                    <DateOfBirthField
+                      disabled={isSubmitting}
+                      helperText="Use the birthday shown on your identity document. It remains private."
+                      onChange={(value) => {
+                        setDateOfBirth(value);
+                        setErrorMessage(null);
+                      }}
                       value={dateOfBirth}
                     />
-                    <Text style={styles.inputHelp}>
-                      Use the date shown on your identity document.
-                    </Text>
 
                     <Pressable
                       disabled={isSubmitting}

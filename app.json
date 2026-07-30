@@ -37,7 +37,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Vouch to access a photo you choose for your private member profile.",
-          "cameraPermission": false,
+          "cameraPermission": "Allow Vouch to use your camera when you choose to take a private profile photo.",
           "microphonePermission": false
         }
       ]
