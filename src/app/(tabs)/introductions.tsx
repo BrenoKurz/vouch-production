@@ -1,47 +1,67 @@
-import type { Href } from 'expo-router';
-import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import type { Href } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { useCallback, useMemo, useState } from 'react';
+} from "react-native";
 
-import { ApiError, apiGet } from '@/lib/api';
-import { useAuth } from '@/providers/auth-provider';
+import {
+  AppScreen,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  PageHeader,
+  StatusPill,
+  type StatusTone,
+} from "@/components/vouch-ui";
+import {
+  layout,
+  palette,
+  radius,
+  shadow,
+  space,
+  typography,
+} from "@/constants/design";
+import { ApiError, apiGet } from "@/lib/api";
+import { useAuth } from "@/providers/auth-provider";
 import type {
   Introduction,
   IntroductionState,
   IntroductionsEnvelope,
-} from '@/types/introduction';
+} from "@/types/introduction";
 
-const states: Record<IntroductionState, string> = {
-  awaiting_your_response: 'Awaiting your response',
-  accepted_waiting: 'Waiting for their response',
-  mutual_ready: 'Mutual interest',
-  conversation_open: 'Conversation open',
-  date_proposed: 'Date proposed',
-  date_confirmed: 'Date confirmed',
-  debrief_pending: 'Debrief pending',
-  completed: 'Completed',
-  passed: 'Passed',
-  timed_out: 'Timed out',
-  kind_closed: 'Closed with care',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
+const states: Record<
+  IntroductionState,
+  { label: string; tone: StatusTone }
+> = {
+  awaiting_your_response: { label: "Your response", tone: "warning" },
+  accepted_waiting: { label: "Waiting for them", tone: "brand" },
+  mutual_ready: { label: "Mutual interest", tone: "positive" },
+  conversation_open: { label: "Conversation open", tone: "positive" },
+  date_proposed: { label: "Date proposed", tone: "warning" },
+  date_confirmed: { label: "Date confirmed", tone: "positive" },
+  debrief_pending: { label: "Debrief ready", tone: "warning" },
+  completed: { label: "Completed", tone: "neutral" },
+  passed: { label: "Passed", tone: "neutral" },
+  timed_out: { label: "Timed out", tone: "neutral" },
+  kind_closed: { label: "Closed with care", tone: "neutral" },
+  expired: { label: "Expired", tone: "neutral" },
+  cancelled: { label: "Cancelled", tone: "danger" },
 };
 
 function priority(item: Introduction) {
-  if (item.member_state === 'awaiting_your_response') return 0;
-  if (item.member_state === 'debrief_pending') return 1;
-  if (item.member_state === 'accepted_waiting') return 2;
-  return 3;
+  if (item.member_state === "awaiting_your_response") return 0;
+  if (item.member_state === "debrief_pending") return 1;
+  if (item.member_state === "date_proposed") return 2;
+  if (item.member_state === "accepted_waiting") return 3;
+  return 4;
 }
 
 function formatDeadline(value: string | null) {
@@ -50,10 +70,10 @@ function formatDeadline(value: string | null) {
   if (Number.isNaN(date.getTime())) return null;
 
   return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -63,7 +83,7 @@ export default function IntroductionsScreen() {
   const [items, setItems] = useState<Introduction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   const sortedItems = useMemo(
     () =>
@@ -82,25 +102,21 @@ export default function IntroductionsScreen() {
     async (refreshing = false) => {
       if (!accessToken) return;
 
-      if (refreshing) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-      setErrorMessage('');
+      if (refreshing) setIsRefreshing(true);
+      else setIsLoading(true);
+      setErrorMessage("");
 
       try {
         const response = await apiGet<IntroductionsEnvelope>(
-          '/introductions',
+          "/introductions",
           accessToken,
         );
-
         setItems(response.data);
       } catch (error) {
         if (
           error instanceof ApiError &&
           (error.status === 401 ||
-            error.code === 'authentication_required')
+            error.code === "authentication_required")
         ) {
           await signOut();
           return;
@@ -109,7 +125,7 @@ export default function IntroductionsScreen() {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Unable to load your introductions.',
+            : "Unable to load your introductions.",
         );
       } finally {
         setIsLoading(false);
@@ -125,34 +141,28 @@ export default function IntroductionsScreen() {
     }, [load]),
   );
 
-  if (isLoading) {
+  if (isLoading && items.length === 0) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>Gathering your introductions…</Text>
-        </View>
-      </SafeAreaView>
+      <AppScreen>
+        <LoadingState label="Gathering your introductions…" />
+      </AppScreen>
     );
   }
 
   if (errorMessage && items.length === 0) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.center}>
-          <Text style={styles.eyebrow}>UNABLE TO LOAD</Text>
-          <Text style={styles.emptyTitle}>Your introductions are still private.</Text>
-          <Text style={styles.emptyBody}>{errorMessage}</Text>
-          <Pressable onPress={() => void load()} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+      <AppScreen>
+        <ErrorState
+          body={errorMessage}
+          onRetry={() => void load()}
+          title="Your introductions are still private"
+        />
+      </AppScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen>
       <FlatList
         contentContainerStyle={[
           styles.list,
@@ -161,38 +171,30 @@ export default function IntroductionsScreen() {
         data={sortedItems}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          sortedItems.length ? (
-            <View style={styles.header}>
-              <Text style={styles.eyebrow}>CURATED FOR YOU</Text>
-              <Text style={styles.title}>Introductions</Text>
-              <Text style={styles.helper}>
-                Every introduction is selected thoughtfully by Vouch.
-              </Text>
-            </View>
-          ) : null
+          <PageHeader
+            eyebrow="CURATED FOR YOU"
+            subtitle="Each introduction is selected by people who understand your private profile."
+            title="Introductions"
+          />
         }
         ListEmptyComponent={
-          <View style={styles.center}>
-            <Text style={styles.eyebrow}>VOUCH</Text>
-            <Text style={styles.emptyTitle}>
-              Your next introduction will arrive thoughtfully.
-            </Text>
-            <Text style={styles.emptyBody}>
-              There is nothing to review right now.
-            </Text>
-          </View>
+          <EmptyState
+            body="There is nothing to review right now. We’ll notify you when a considered introduction is ready."
+            icon="sparkles-outline"
+            title="We’re looking thoughtfully"
+          />
         }
         refreshControl={
           <RefreshControl
             onRefresh={() => void load(true)}
             refreshing={isRefreshing}
-            tintColor="#352D28"
+            tintColor={palette.brand}
           />
         }
         renderItem={({ item }) => <IntroductionCard item={item} />}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -200,15 +202,16 @@ function IntroductionCard({ item }: { item: Introduction }) {
   const photo = item.profile_snapshot.photos[0]?.url;
   const prompt = item.profile_snapshot.prompts[0];
   const deadline = formatDeadline(item.response_deadline_at);
+  const state = states[item.member_state];
   const hasConversation = Boolean(
     item.conversation_id &&
-      item.available_actions.includes('open_conversation'),
+      item.available_actions.includes("open_conversation"),
   );
 
   function open() {
     router.push(
       {
-        pathname: '/introduction/[id]',
+        pathname: "/introduction/[id]",
         params: { id: item.id },
       } as Href,
     );
@@ -216,6 +219,12 @@ function IntroductionCard({ item }: { item: Introduction }) {
 
   return (
     <Pressable
+      accessibilityHint={
+        hasConversation
+          ? "Opens this introduction and its conversation"
+          : "Opens the full introduction"
+      }
+      accessibilityLabel={`Introduction to ${item.profile_snapshot.first_name}, ${state.label}`}
       accessibilityRole="button"
       onPress={open}
       style={({ pressed }) => [
@@ -223,183 +232,207 @@ function IntroductionCard({ item }: { item: Introduction }) {
         pressed && styles.pressed,
       ]}
     >
-      {photo ? (
-        <Image source={{ uri: photo }} style={styles.photo} />
-      ) : (
-        <View style={[styles.photo, styles.photoPlaceholder]}>
-          <Text style={styles.initial}>
-            {item.profile_snapshot.first_name.slice(0, 1).toUpperCase()}
-          </Text>
+      <View style={styles.photoWrap}>
+        {photo ? (
+          <Image
+            accessibilityLabel={`${item.profile_snapshot.first_name}'s profile photo`}
+            source={{ uri: photo }}
+            style={styles.photo}
+          />
+        ) : (
+          <View style={[styles.photo, styles.photoPlaceholder]}>
+            <Text style={styles.initial}>
+              {item.profile_snapshot.first_name.slice(0, 1).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={styles.photoBadge}>
+          <StatusPill label={state.label} tone={state.tone} />
         </View>
-      )}
+      </View>
 
       <View style={styles.cardBody}>
-        <Text style={styles.name}>
-          {item.profile_snapshot.first_name}, {item.profile_snapshot.age_display}
-        </Text>
-        <Text style={styles.neighborhood}>
-          {item.profile_snapshot.neighborhood}
-        </Text>
-
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{states[item.member_state]}</Text>
+        <View style={styles.nameRow}>
+          <View style={styles.nameCopy}>
+            <Text style={styles.name}>
+              {item.profile_snapshot.first_name},{" "}
+              {item.profile_snapshot.age_display}
+            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons
+                color={palette.muted}
+                name="location-outline"
+                size={15}
+              />
+              <Text style={styles.neighborhood}>
+                {item.profile_snapshot.neighborhood}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.openIcon}>
+            <Ionicons
+              color={palette.brand}
+              name="arrow-forward"
+              size={19}
+            />
+          </View>
         </View>
 
         {item.introduction_note.body ? (
-          <Text numberOfLines={3} style={styles.note}>
-            {item.introduction_note.body}
-          </Text>
+          <View style={styles.noteBlock}>
+            <Text style={styles.noteLabel}>WHY VOUCH INTRODUCED YOU</Text>
+            <Text numberOfLines={4} style={styles.note}>
+              “{item.introduction_note.body}”
+            </Text>
+          </View>
         ) : null}
 
         {prompt ? (
           <View style={styles.prompt}>
             <Text style={styles.promptQuestion}>{prompt.question}</Text>
-            <Text numberOfLines={2} style={styles.promptAnswer}>
+            <Text numberOfLines={3} style={styles.promptAnswer}>
               {prompt.answer}
             </Text>
           </View>
         ) : null}
 
         {deadline ? (
-          <Text style={styles.deadline}>Respond by {deadline}</Text>
+          <View style={styles.deadlineRow}>
+            <Ionicons
+              color={palette.amber}
+              name="time-outline"
+              size={16}
+            />
+            <Text style={styles.deadline}>Respond by {deadline}</Text>
+          </View>
         ) : null}
-
-        <Text style={styles.openLabel}>
-          {hasConversation
-            ? 'Open conversation →'
-            : 'View introduction →'}
-        </Text>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F4EF' },
-  list: { paddingBottom: 36, paddingHorizontal: 20 },
-  emptyList: { flexGrow: 1 },
-  header: { paddingBottom: 22, paddingTop: 22 },
-  eyebrow: {
-    color: '#766E67',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
+  list: {
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.lg,
+    width: "100%",
   },
-  title: {
-    color: '#171717',
-    fontSize: 34,
-    fontWeight: '600',
-    letterSpacing: -1,
-    marginTop: 10,
-  },
-  helper: {
-    color: '#68635D',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 10,
+  emptyList: {
+    flexGrow: 1,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2DCD5',
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    marginBottom: 16,
-    overflow: 'hidden',
+    marginBottom: space.lg,
+    overflow: "hidden",
+    ...shadow,
   },
-  pressed: { opacity: 0.86 },
+  pressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.995 }],
+  },
+  photoWrap: {
+    position: "relative",
+  },
   photo: {
-    aspectRatio: 1.35,
-    backgroundColor: '#EAE4DD',
-    width: '100%',
+    aspectRatio: 1.22,
+    backgroundColor: palette.canvasStrong,
+    width: "100%",
   },
   photoPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  initial: { color: '#776E66', fontSize: 48, fontWeight: '600' },
-  cardBody: { padding: 18 },
-  name: { color: '#171717', fontSize: 23, fontWeight: '700' },
-  neighborhood: { color: '#746D66', fontSize: 14, marginTop: 4 },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#E8ECE9',
-    borderRadius: 7,
-    marginTop: 13,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
+  initial: {
+    color: palette.brand,
+    fontFamily: "Georgia",
+    fontSize: 58,
+    fontWeight: "700",
   },
-  badgeText: {
-    color: '#365C4D',
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+  photoBadge: {
+    bottom: space.md,
+    left: space.md,
+    position: "absolute",
+  },
+  cardBody: {
+    padding: space.lg,
+  },
+  nameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.md,
+    justifyContent: "space-between",
+  },
+  nameCopy: {
+    flex: 1,
+  },
+  name: {
+    color: palette.ink,
+    ...typography.heading,
+  },
+  locationRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3,
+    marginTop: space.xxs,
+  },
+  neighborhood: {
+    color: palette.muted,
+    ...typography.small,
+  },
+  openIcon: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.pill,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
+  noteBlock: {
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.sm,
+    marginTop: space.lg,
+    padding: space.md,
+  },
+  noteLabel: {
+    color: palette.brand,
+    ...typography.label,
   },
   note: {
-    color: '#4E4944',
-    fontSize: 15,
-    fontStyle: 'italic',
-    lineHeight: 22,
-    marginTop: 16,
+    color: palette.inkSoft,
+    fontFamily: "Georgia",
+    fontSize: 16,
+    fontStyle: "italic",
+    lineHeight: 24,
+    marginTop: space.xs,
   },
   prompt: {
-    borderTopColor: '#EEE9E3',
+    borderTopColor: palette.border,
     borderTopWidth: 1,
-    marginTop: 16,
-    paddingTop: 14,
+    marginTop: space.lg,
+    paddingTop: space.md,
   },
   promptQuestion: {
-    color: '#766E67',
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+    color: palette.muted,
+    ...typography.label,
   },
   promptAnswer: {
-    color: '#282522',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 6,
+    color: palette.ink,
+    marginTop: space.xs,
+    ...typography.body,
+  },
+  deadlineRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    marginTop: space.md,
   },
   deadline: {
-    color: '#8B4A32',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 16,
+    color: palette.amber,
+    ...typography.caption,
   },
-  openLabel: {
-    color: '#352D28',
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 18,
-  },
-  center: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 28,
-  },
-  emptyTitle: {
-    color: '#171717',
-    fontSize: 29,
-    fontWeight: '600',
-    lineHeight: 35,
-    marginTop: 14,
-    textAlign: 'center',
-  },
-  emptyBody: {
-    color: '#68635D',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
-    height: 52,
-    justifyContent: 'center',
-    marginTop: 24,
-    paddingHorizontal: 28,
-  },
-  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
 });

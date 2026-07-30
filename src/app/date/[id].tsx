@@ -11,7 +11,6 @@ import {
   Alert,
   Image,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +18,18 @@ import {
 } from 'react-native';
 import { useCallback, useMemo, useState } from 'react';
 
+import {
+  AppScreen,
+  ErrorState,
+  LoadingState,
+  StackHeader,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  radius,
+  space,
+} from '@/constants/design';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
@@ -199,31 +210,23 @@ export default function DateDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>Opening your date…</Text>
-        </View>
-      </SafeAreaView>
+        <LoadingState label="Opening your date plan…" />
+      </AppScreen>
     );
   }
 
   if (!item || !startsAt) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <Text style={styles.eyebrow}>UNAVAILABLE</Text>
-          <Text style={styles.errorTitle}>
-            This date could not be opened.
-          </Text>
-          <Text style={styles.errorBody}>{errorMessage}</Text>
-          <Pressable onPress={() => void load()} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        <ErrorState
+          body={errorMessage}
+          onRetry={() => void load()}
+          title="This date could not be opened"
+        />
+      </AppScreen>
     );
   }
 
@@ -231,7 +234,7 @@ export default function DateDetailScreen() {
   const photo = profile.photos[0]?.url;
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <Header />
 
       <ScrollView
@@ -268,7 +271,7 @@ export default function DateDetailScreen() {
         >
           <Ionicons
             color={
-              item.state === 'confirmed' ? '#365C4D' : '#8B4A32'
+              item.state === 'confirmed' ? palette.sage : palette.amber
             }
             name={
               item.state === 'confirmed'
@@ -313,7 +316,7 @@ export default function DateDetailScreen() {
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Ionicons
-                color="#5E5751"
+                color={palette.inkSoft}
                 name="calendar-outline"
                 size={20}
               />
@@ -331,7 +334,7 @@ export default function DateDetailScreen() {
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Ionicons
-                color="#5E5751"
+                color={palette.inkSoft}
                 name="time-outline"
                 size={20}
               />
@@ -349,7 +352,7 @@ export default function DateDetailScreen() {
           <View style={styles.detailRow}>
             <View style={styles.detailIcon}>
               <Ionicons
-                color="#5E5751"
+                color={palette.inkSoft}
                 name="location-outline"
                 size={20}
               />
@@ -395,7 +398,7 @@ export default function DateDetailScreen() {
             style={styles.primaryButton}
           >
             {isConfirming ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={palette.white} />
             ) : (
               <Text style={styles.primaryText}>
                 Confirm this date
@@ -435,7 +438,7 @@ export default function DateDetailScreen() {
             style={styles.secondaryButton}
           >
             <Ionicons
-              color="#352D28"
+              color={palette.ink}
               name="calendar-outline"
               size={18}
             />
@@ -459,18 +462,18 @@ export default function DateDetailScreen() {
             }
             style={[
               styles.secondaryButton,
-              { borderColor: '#D7B4AA' },
+              { borderColor: palette.brandSoftStrong },
             ]}
           >
             <Ionicons
-              color="#8D3933"
+              color={palette.danger}
               name="close-circle-outline"
               size={18}
             />
             <Text
               style={[
                 styles.secondaryText,
-                { color: '#8D3933' },
+                { color: palette.danger },
               ]}
             >
               Cancel date
@@ -493,18 +496,18 @@ export default function DateDetailScreen() {
           }
           style={[
             styles.secondaryButton,
-            { borderColor: '#D7A9A3' },
+            { borderColor: palette.brandSoftStrong },
           ]}
         >
           <Ionicons
-            color="#943D35"
+            color={palette.danger}
             name="shield-outline"
             size={18}
           />
           <Text
             style={[
               styles.secondaryText,
-              { color: '#943D35' },
+              { color: palette.danger },
             ]}
           >
             Report a safety concern
@@ -523,7 +526,7 @@ export default function DateDetailScreen() {
           style={styles.secondaryButton}
         >
           <Ionicons
-            color="#352D28"
+            color={palette.ink}
             name="chatbubble-outline"
             size={18}
           />
@@ -532,45 +535,22 @@ export default function DateDetailScreen() {
           </Text>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 function Header() {
-  return (
-    <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons color="#352D28" name="chevron-back" size={25} />
-      </Pressable>
-      <Text style={styles.wordmark}>VOUCH</Text>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
+  return <StackHeader />;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F4EF' },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 54,
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
+  content: {
+    alignSelf: 'center',
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.lg,
+    width: '100%',
   },
-  backButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 3.2,
-  },
-  headerSpacer: { width: 40 },
-  content: { paddingBottom: 42, paddingHorizontal: 20 },
   personRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -578,8 +558,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   avatar: {
-    backgroundColor: '#EAE4DD',
-    borderRadius: 11,
+    backgroundColor: palette.canvasStrong,
+    borderRadius: radius.sm,
     height: 82,
     width: 70,
   },
@@ -588,51 +568,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    color: '#776E66',
+    color: palette.brand,
     fontSize: 30,
     fontWeight: '600',
   },
   personCopy: { flex: 1 },
   name: {
-    color: '#171717',
+    color: palette.ink,
     fontSize: 27,
     fontWeight: '700',
     letterSpacing: -0.5,
   },
   neighborhood: {
-    color: '#746D66',
+    color: palette.muted,
     fontSize: 14,
     marginTop: 5,
   },
   statusCard: {
     alignItems: 'flex-start',
-    backgroundColor: '#F4E4DB',
-    borderRadius: 12,
+    backgroundColor: palette.amberSoft,
+    borderRadius: radius.md,
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
     padding: 17,
   },
   confirmedStatusCard: {
-    backgroundColor: '#E5ECE8',
+    backgroundColor: palette.sageSoft,
   },
   statusCopy: { flex: 1 },
   statusTitle: {
-    color: '#7A4432',
+    color: palette.amber,
     fontSize: 16,
     fontWeight: '800',
   },
-  confirmedStatusTitle: { color: '#365C4D' },
+  confirmedStatusTitle: { color: palette.sage },
   statusBody: {
-    color: '#68635D',
+    color: palette.muted,
     fontSize: 14,
     lineHeight: 20,
     marginTop: 5,
   },
   detailCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2DCD5',
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     marginTop: 22,
     padding: 18,
@@ -644,7 +624,7 @@ const styles = StyleSheet.create({
   },
   detailIcon: {
     alignItems: 'center',
-    backgroundColor: '#EEEAE5',
+    backgroundColor: palette.canvasStrong,
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
@@ -652,55 +632,55 @@ const styles = StyleSheet.create({
   },
   detailCopy: { flex: 1 },
   detailLabel: {
-    color: '#766E67',
+    color: palette.brand,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.1,
   },
   detailValue: {
-    color: '#282522',
+    color: palette.ink,
     fontSize: 17,
     fontWeight: '700',
     lineHeight: 23,
     marginTop: 5,
   },
   detailMeta: {
-    color: '#746D66',
+    color: palette.muted,
     fontSize: 13,
     lineHeight: 18,
     marginTop: 4,
   },
   divider: {
-    backgroundColor: '#EEE9E3',
+    backgroundColor: palette.border,
     height: 1,
     marginVertical: 17,
   },
   inlineError: {
-    backgroundColor: '#F6E9E6',
-    borderRadius: 9,
-    color: '#943D35',
+    backgroundColor: palette.dangerSoft,
+    borderRadius: radius.sm,
+    color: palette.danger,
     fontSize: 14,
     marginTop: 20,
     padding: 14,
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     height: 56,
     justifyContent: 'center',
     marginTop: 24,
     paddingHorizontal: 28,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: palette.white,
     fontSize: 16,
     fontWeight: '700',
   },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: '#BEB6AE',
-    borderRadius: 10,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 9,
@@ -709,7 +689,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   secondaryText: {
-    color: '#352D28',
+    color: palette.ink,
     fontSize: 15,
     fontWeight: '700',
   },

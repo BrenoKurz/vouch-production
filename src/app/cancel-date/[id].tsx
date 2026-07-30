@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import {
   type Href,
@@ -20,6 +19,8 @@ import {
 } from 'react-native';
 import { useCallback, useState } from 'react';
 
+import { StackHeader } from '@/components/vouch-ui';
+import { layout } from '@/constants/design';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
@@ -296,15 +297,7 @@ export default function CancelDateScreen() {
 }
 
 function Header() {
-  return (
-    <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons color="#352D28" name="chevron-back" size={25} />
-      </Pressable>
-      <Text style={styles.wordmark}>VOUCH</Text>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
+  return <StackHeader />;
 }
 
 const styles = StyleSheet.create({
@@ -329,7 +322,13 @@ const styles = StyleSheet.create({
     letterSpacing: 3.2,
   },
   headerSpacer: { width: 40 },
-  content: { paddingBottom: 42, paddingHorizontal: 20 },
+  content: {
+    alignSelf: 'center',
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: 42,
+    paddingHorizontal: 20,
+    width: '100%',
+  },
   personRow: {
     alignItems: 'center',
     flexDirection: 'row',

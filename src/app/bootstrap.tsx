@@ -1,44 +1,27 @@
+import { StyleSheet, View } from "react-native";
+
 import {
-  ActivityIndicator,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+  AppScreen,
+  LoadingState,
+  VouchWordmark,
+} from "@/components/vouch-ui";
+import { space } from "@/constants/design";
 
 export default function BootstrapScreen() {
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <View style={styles.content}>
-        <Text style={styles.wordmark}>VOUCH</Text>
-        <ActivityIndicator color="#352D28" size="large" />
-        <Text style={styles.message}>Preparing your experience…</Text>
+        <VouchWordmark />
+        <LoadingState label="Preparing your private member experience…" />
       </View>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F4EF',
-  },
   content: {
-    alignItems: 'center',
     flex: 1,
-    justifyContent: 'center',
-    padding: 28,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 4,
-    marginBottom: 34,
-  },
-  message: {
-    color: '#68635D',
-    fontSize: 15,
-    marginTop: 20,
+    paddingHorizontal: space.xl,
+    paddingTop: space.lg,
   },
 });

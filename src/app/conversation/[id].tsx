@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -26,6 +25,17 @@ import {
   useState,
 } from 'react';
 
+import {
+  AppScreen,
+  ErrorState,
+  LoadingState,
+  StackHeader,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  radius,
+} from '@/constants/design';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
@@ -319,41 +329,28 @@ export default function ConversationScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header title="Conversation" />
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>
-            Opening your conversation…
-          </Text>
-        </View>
-      </SafeAreaView>
+        <LoadingState label="Opening your private conversation…" />
+      </AppScreen>
     );
   }
 
   if (!conversation) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header title="Conversation" />
-        <View style={styles.center}>
-          <Text style={styles.eyebrow}>UNAVAILABLE</Text>
-          <Text style={styles.errorTitle}>
-            This conversation could not be opened.
-          </Text>
-          <Text style={styles.errorBody}>{errorMessage}</Text>
-          <Pressable
-            onPress={() => void load('initial')}
-            style={styles.primaryButton}
-          >
-            <Text style={styles.primaryText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        <ErrorState
+          body={errorMessage}
+          onRetry={() => void load('initial')}
+          title="This conversation could not be opened"
+        />
+      </AppScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
@@ -393,7 +390,7 @@ export default function ConversationScreen() {
             <View style={styles.emptyState}>
               <View style={styles.matchIcon}>
                 <Ionicons
-                  color="#365C4D"
+                  color={palette.sage}
                   name="heart"
                   size={24}
                 />
@@ -422,7 +419,7 @@ export default function ConversationScreen() {
           <View style={styles.dateActionCard}>
             <View style={styles.dateActionIcon}>
               <Ionicons
-                color="#365C4D"
+                color={palette.sage}
                 name="calendar-outline"
                 size={20}
               />
@@ -478,7 +475,7 @@ export default function ConversationScreen() {
               </Text>
             </View>
             <Ionicons
-              color="#352D28"
+              color={palette.ink}
               name="chevron-forward"
               size={20}
             />
@@ -530,7 +527,7 @@ export default function ConversationScreen() {
           style={styles.safetyAction}
         >
           <Ionicons
-            color="#943D35"
+            color={palette.danger}
             name="shield-outline"
             size={18}
           />
@@ -551,7 +548,7 @@ export default function ConversationScreen() {
                 if (canSend) void sendMessage();
               }}
               placeholder={`Message ${counterpartName}`}
-              placeholderTextColor="#918A83"
+              placeholderTextColor={palette.subtle}
               returnKeyType="send"
               style={styles.input}
               value={draft}
@@ -567,10 +564,10 @@ export default function ConversationScreen() {
               ]}
             >
               {isSending ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={palette.white} size="small" />
               ) : (
                 <Ionicons
-                  color="#FFFFFF"
+                  color={palette.white}
                   name="arrow-up"
                   size={21}
                 />
@@ -590,7 +587,7 @@ export default function ConversationScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -644,71 +641,16 @@ function Header({
   title: string;
   subtitle?: string;
 }) {
-  return (
-    <View style={styles.header}>
-      <Pressable
-        onPress={() => router.back()}
-        style={styles.backButton}
-      >
-        <Ionicons
-          color="#352D28"
-          name="chevron-back"
-          size={25}
-        />
-      </Pressable>
-
-      <View style={styles.headerCopy}>
-        <Text numberOfLines={1} style={styles.headerTitle}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text style={styles.headerSubtitle}>{subtitle}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.headerSpacer} />
-    </View>
-  );
+  return <StackHeader subtitle={subtitle} title={title} />;
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    backgroundColor: '#F7F4EF',
+  keyboardView: {
+    alignSelf: 'center',
     flex: 1,
+    maxWidth: layout.contentMaxWidth,
+    width: '100%',
   },
-  keyboardView: { flex: 1 },
-  header: {
-    alignItems: 'center',
-    borderBottomColor: '#E5DFD8',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    minHeight: 58,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  backButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  headerCopy: {
-    alignItems: 'center',
-    flex: 1,
-    paddingHorizontal: 8,
-  },
-  headerTitle: {
-    color: '#1D1B19',
-    fontSize: 17,
-    fontWeight: '700',
-    maxWidth: '100%',
-  },
-  headerSubtitle: {
-    color: '#746D66',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  headerSpacer: { width: 40 },
   messages: {
     gap: 10,
     paddingBottom: 18,
@@ -725,21 +667,21 @@ const styles = StyleSheet.create({
   },
   matchIcon: {
     alignItems: 'center',
-    backgroundColor: '#E5ECE8',
+    backgroundColor: palette.sageSoft,
     borderRadius: 24,
     height: 48,
     justifyContent: 'center',
     width: 48,
   },
   emptyTitle: {
-    color: '#1F1D1B',
+    color: palette.ink,
     fontSize: 22,
     fontWeight: '700',
     marginTop: 18,
     textAlign: 'center',
   },
   emptyBody: {
-    color: '#6F6861',
+    color: palette.muted,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 9,
@@ -749,29 +691,29 @@ const styles = StyleSheet.create({
   myMessageRow: { alignItems: 'flex-end' },
   theirMessageRow: { alignItems: 'flex-start' },
   bubble: {
-    borderRadius: 16,
+    borderRadius: radius.md,
     maxWidth: '82%',
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   myBubble: {
-    backgroundColor: '#352D28',
+    backgroundColor: palette.brand,
     borderBottomRightRadius: 5,
   },
   theirBubble: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.surface,
     borderBottomLeftRadius: 5,
-    borderColor: '#E3DDD6',
+    borderColor: palette.border,
     borderWidth: 1,
   },
   messageBody: {
-    color: '#26221F',
+    color: palette.ink,
     fontSize: 16,
     lineHeight: 22,
   },
-  myMessageBody: { color: '#FFFFFF' },
+  myMessageBody: { color: palette.white },
   messageTime: {
-    color: '#8A837C',
+    color: palette.subtle,
     fontSize: 10,
     marginTop: 5,
     textAlign: 'right',
@@ -779,8 +721,8 @@ const styles = StyleSheet.create({
   myMessageTime: { color: '#D8D0C9' },
   dateActionCard: {
     alignItems: 'center',
-    backgroundColor: '#E8ECE9',
-    borderTopColor: '#D4DED8',
+    backgroundColor: palette.sageSoft,
+    borderTopColor: '#C9DCD2',
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 11,
@@ -789,7 +731,7 @@ const styles = StyleSheet.create({
   },
   dateActionIcon: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.white,
     borderRadius: 20,
     height: 40,
     justifyContent: 'center',
@@ -797,33 +739,33 @@ const styles = StyleSheet.create({
   },
   dateActionCopy: { flex: 1 },
   dateActionTitle: {
-    color: '#29483B',
+    color: palette.sage,
     fontSize: 14,
     fontWeight: '800',
   },
   dateActionBody: {
-    color: '#60736B',
+    color: palette.inkSoft,
     fontSize: 12,
     lineHeight: 17,
     marginTop: 2,
   },
   dateActionButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 9,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     height: 38,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   dateActionButtonText: {
-    color: '#FFFFFF',
+    color: palette.white,
     fontSize: 13,
     fontWeight: '800',
   },
   viewDateCard: {
     alignItems: 'center',
-    backgroundColor: '#E8ECE9',
-    borderTopColor: '#D4DED8',
+    backgroundColor: palette.sageSoft,
+    borderTopColor: '#C9DCD2',
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 11,
@@ -832,20 +774,20 @@ const styles = StyleSheet.create({
   },
   viewDateCopy: { flex: 1 },
   viewDateTitle: {
-    color: '#29483B',
+    color: palette.sage,
     fontSize: 14,
     fontWeight: '800',
   },
   viewDateBody: {
-    color: '#60736B',
+    color: palette.inkSoft,
     fontSize: 12,
     lineHeight: 17,
     marginTop: 2,
   },
   safetyAction: {
     alignItems: 'center',
-    backgroundColor: '#F8EFED',
-    borderTopColor: '#E6C8C3',
+    backgroundColor: palette.dangerSoft,
+    borderTopColor: palette.brandSoftStrong,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 8,
@@ -854,14 +796,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   safetyActionText: {
-    color: '#943D35',
+    color: palette.danger,
     fontSize: 13,
     fontWeight: '800',
   },
   kindCloseAction: {
     alignItems: 'center',
-    backgroundColor: '#EEEAE5',
-    borderTopColor: '#DED7D0',
+    backgroundColor: palette.canvasStrong,
+    borderTopColor: palette.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 8,
@@ -877,8 +819,8 @@ const styles = StyleSheet.create({
   },
   composer: {
     alignItems: 'flex-end',
-    backgroundColor: '#FFFFFF',
-    borderTopColor: '#E2DCD5',
+    backgroundColor: palette.surface,
+    borderTopColor: palette.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 10,
@@ -886,11 +828,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   input: {
-    backgroundColor: '#F4F1ED',
-    borderColor: '#DDD7D0',
-    borderRadius: 16,
+    backgroundColor: palette.canvas,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
-    color: '#1F1D1B',
+    color: palette.ink,
     flex: 1,
     fontSize: 16,
     maxHeight: 120,
@@ -900,7 +842,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
+    backgroundColor: palette.brand,
     borderRadius: 23,
     height: 46,
     justifyContent: 'center',
@@ -908,22 +850,22 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { opacity: 0.35 },
   errorBanner: {
-    backgroundColor: '#F6E9E6',
-    borderTopColor: '#E8CAC5',
+    backgroundColor: palette.dangerSoft,
+    borderTopColor: palette.brandSoftStrong,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   errorBannerText: {
-    color: '#8D3933',
+    color: palette.danger,
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
   },
   closedBanner: {
     alignItems: 'center',
-    backgroundColor: '#EEEAE5',
-    borderTopColor: '#DED7D0',
+    backgroundColor: palette.canvasStrong,
+    borderTopColor: palette.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     gap: 8,

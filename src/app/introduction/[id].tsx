@@ -13,7 +13,6 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,19 @@ import {
 } from 'react-native';
 import { useCallback, useMemo, useState } from 'react';
 
+import {
+  AppScreen,
+  ErrorState,
+  LoadingState,
+  StackHeader,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  radius,
+  space,
+  typography,
+} from '@/constants/design';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
@@ -63,7 +75,10 @@ export default function IntroductionDetailScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { width } = useWindowDimensions();
-  const photoWidth = Math.max(width - 32, 1);
+  const photoWidth = Math.min(
+    Math.max(width - space.xl * 2, 1),
+    layout.contentMaxWidth - space.xl * 2,
+  );
 
   const { session, signOut } = useAuth();
   const accessToken = session?.access_token;
@@ -243,31 +258,23 @@ export default function IntroductionDetailScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>Opening your introduction…</Text>
-        </View>
-      </SafeAreaView>
+        <LoadingState label="Opening your introduction…" />
+      </AppScreen>
     );
   }
 
   if (!item) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <Text style={styles.eyebrow}>UNAVAILABLE</Text>
-          <Text style={styles.errorTitle}>
-            This introduction could not be opened.
-          </Text>
-          <Text style={styles.errorBody}>{errorMessage}</Text>
-          <Pressable onPress={() => void load()} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        <ErrorState
+          body={errorMessage}
+          onRetry={() => void load()}
+          title="This introduction could not be opened"
+        />
+      </AppScreen>
     );
   }
 
@@ -281,7 +288,7 @@ export default function IntroductionDetailScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <Header />
 
       <ScrollView
@@ -344,7 +351,7 @@ export default function IntroductionDetailScreen() {
 
         {deadline && canAccept ? (
           <View style={styles.deadlineCard}>
-            <Ionicons color="#8B4A32" name="time-outline" size={19} />
+            <Ionicons color={palette.amber} name="time-outline" size={19} />
             <Text style={styles.deadlineText}>
               Please respond by {deadline}
             </Text>
@@ -380,7 +387,7 @@ export default function IntroductionDetailScreen() {
                 style={styles.acceptButton}
               >
                 {pending === 'accept' ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={palette.white} />
                 ) : (
                   <Text style={styles.acceptText}>I’m interested</Text>
                 )}
@@ -394,7 +401,7 @@ export default function IntroductionDetailScreen() {
                 style={styles.passButton}
               >
                 {pending === 'pass' ? (
-                  <ActivityIndicator color="#352D28" />
+                  <ActivityIndicator color={palette.ink} />
                 ) : (
                   <Text style={styles.passText}>Kindly pass</Text>
                 )}
@@ -404,7 +411,7 @@ export default function IntroductionDetailScreen() {
         ) : canOpenConversation && conversationId ? (
           <View style={styles.matchCard}>
             <View style={styles.matchIcon}>
-              <Ionicons color="#365C4D" name="heart" size={22} />
+              <Ionicons color={palette.sage} name="heart" size={22} />
             </View>
             <Text style={styles.matchTitle}>
               The interest is mutual.
@@ -427,7 +434,7 @@ export default function IntroductionDetailScreen() {
                 Open conversation
               </Text>
               <Ionicons
-                color="#FFFFFF"
+                color={palette.white}
                 name="arrow-forward"
                 size={18}
               />
@@ -444,55 +451,32 @@ export default function IntroductionDetailScreen() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 function Header() {
-  return (
-    <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons color="#352D28" name="chevron-back" size={25} />
-      </Pressable>
-      <Text style={styles.wordmark}>VOUCH</Text>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
+  return <StackHeader />;
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F4EF' },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 54,
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
+  content: {
+    alignSelf: 'center',
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.xl,
+    width: '100%',
   },
-  backButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 3.2,
-  },
-  headerSpacer: { width: 40 },
-  content: { paddingBottom: 42, paddingHorizontal: 16 },
   photo: {
     aspectRatio: 0.82,
-    backgroundColor: '#E8E1DA',
-    borderRadius: 12,
+    backgroundColor: palette.canvasStrong,
+    borderRadius: radius.lg,
   },
   photoPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initial: { color: '#776E66', fontSize: 64, fontWeight: '600' },
+  initial: { color: palette.brand, fontSize: 64, fontWeight: '600' },
   dots: {
     flexDirection: 'row',
     gap: 6,
@@ -500,91 +484,89 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   dot: {
-    backgroundColor: '#C9C2BA',
+    backgroundColor: palette.borderStrong,
     borderRadius: 4,
     height: 6,
     width: 6,
   },
-  activeDot: { backgroundColor: '#352D28', width: 18 },
+  activeDot: { backgroundColor: palette.brand, width: 18 },
   name: {
-    color: '#171717',
-    fontSize: 34,
-    fontWeight: '600',
-    letterSpacing: -1,
-    marginTop: 24,
+    color: palette.ink,
+    marginTop: space.xl,
+    ...typography.title,
   },
-  neighborhood: { color: '#68635D', fontSize: 16, marginTop: 6 },
+  neighborhood: { color: palette.muted, fontSize: 16, marginTop: 6 },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#E8ECE9',
-    borderRadius: 7,
+    backgroundColor: palette.sageSoft,
+    borderRadius: radius.pill,
     marginTop: 14,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
   badgeText: {
-    color: '#365C4D',
+    color: palette.sage,
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   deadlineCard: {
     alignItems: 'center',
-    backgroundColor: '#F4E4DB',
-    borderRadius: 10,
+    backgroundColor: palette.amberSoft,
+    borderRadius: radius.sm,
     flexDirection: 'row',
     gap: 10,
     marginTop: 22,
     padding: 14,
   },
   deadlineText: {
-    color: '#7A4432',
+    color: palette.amber,
     flex: 1,
     fontSize: 14,
     fontWeight: '700',
   },
   noteCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2DCD5',
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     marginTop: 20,
     padding: 20,
   },
   eyebrow: {
-    color: '#766E67',
+    color: palette.brand,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.5,
   },
   noteText: {
-    color: '#302C29',
+    color: palette.inkSoft,
     fontSize: 17,
     fontStyle: 'italic',
     lineHeight: 26,
     marginTop: 12,
   },
   promptCard: {
-    borderBottomColor: '#DDD6CF',
+    borderBottomColor: palette.border,
     borderBottomWidth: 1,
     paddingVertical: 24,
   },
   promptQuestion: {
-    color: '#716961',
+    color: palette.brand,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
   },
   promptAnswer: {
-    color: '#1F1D1B',
+    color: palette.ink,
     fontSize: 20,
     lineHeight: 29,
     marginTop: 10,
   },
   inlineError: {
-    backgroundColor: '#F6E9E6',
-    borderRadius: 9,
-    color: '#943D35',
+    backgroundColor: palette.dangerSoft,
+    borderRadius: radius.sm,
+    color: palette.danger,
     fontSize: 14,
     marginTop: 20,
     padding: 14,
@@ -592,47 +574,47 @@ const styles = StyleSheet.create({
   actions: { gap: 12, marginTop: 28 },
   acceptButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     height: 58,
     justifyContent: 'center',
   },
-  acceptText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  acceptText: { color: palette.white, fontSize: 16, fontWeight: '700' },
   passButton: {
     alignItems: 'center',
-    borderColor: '#BEB6AE',
-    borderRadius: 10,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     height: 56,
     justifyContent: 'center',
   },
-  passText: { color: '#352D28', fontSize: 16, fontWeight: '700' },
+  passText: { color: palette.ink, fontSize: 16, fontWeight: '700' },
   matchCard: {
     alignItems: 'center',
-    backgroundColor: '#E8ECE9',
-    borderColor: '#D4DED8',
-    borderRadius: 12,
+    backgroundColor: palette.sageSoft,
+    borderColor: '#C9DCD2',
+    borderRadius: radius.md,
     borderWidth: 1,
     marginTop: 28,
     padding: 22,
   },
   matchIcon: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: palette.white,
     borderRadius: 23,
     height: 46,
     justifyContent: 'center',
     width: 46,
   },
   matchTitle: {
-    color: '#244437',
+    color: palette.sage,
     fontSize: 20,
     fontWeight: '700',
     marginTop: 14,
     textAlign: 'center',
   },
   matchBody: {
-    color: '#53675F',
+    color: palette.inkSoft,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 7,
@@ -640,8 +622,8 @@ const styles = StyleSheet.create({
   },
   openConversationButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     flexDirection: 'row',
     gap: 8,
     height: 54,
@@ -650,19 +632,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   openConversationText: {
-    color: '#FFFFFF',
+    color: palette.white,
     fontSize: 15,
     fontWeight: '700',
   },
   resolvedCard: {
-    backgroundColor: '#EEEAE5',
-    borderRadius: 10,
+    backgroundColor: palette.canvasStrong,
+    borderRadius: radius.sm,
     marginTop: 28,
     padding: 18,
   },
-  resolvedTitle: { color: '#282522', fontSize: 16, fontWeight: '700' },
+  resolvedTitle: { color: palette.ink, fontSize: 16, fontWeight: '700' },
   resolvedBody: {
-    color: '#68635D',
+    color: palette.muted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 7,

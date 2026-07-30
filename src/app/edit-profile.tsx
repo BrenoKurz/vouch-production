@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,8 @@ import {
   View,
 } from "react-native";
 
+import { AppScreen, StackHeader } from "@/components/vouch-ui";
+import { layout } from "@/constants/design";
 import { ApiError, apiGet, apiPatch } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import type {
@@ -246,13 +247,8 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <Stack.Screen
-        options={{
-          title: "Edit profile",
-          headerBackTitle: "Profile",
-        }}
-      />
+    <AppScreen includeBottomInset>
+      <StackHeader title="Edit profile" />
 
       {isLoading && !profile ? (
         <View style={styles.centered}>
@@ -407,7 +403,7 @@ export default function EditProfileScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -463,9 +459,12 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   content: {
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
     paddingBottom: 52,
     paddingHorizontal: 22,
     paddingTop: 24,
+    width: "100%",
   },
   eyebrow: {
     color: "#8A8179",

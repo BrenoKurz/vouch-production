@@ -1,49 +1,51 @@
-import { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
-  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import { useAuth } from '@/providers/auth-provider';
-
-const colors = {
-  ink: '#171717',
-  muted: '#68635D',
-  border: '#DCD7D0',
-  canvas: '#F7F4EF',
-  surface: '#FFFFFF',
-  accent: '#352D28',
-  error: '#A33A32',
-};
+import {
+  AppButton,
+  AppScreen,
+  InlineNotice,
+  VouchWordmark,
+} from "@/components/vouch-ui";
+import {
+  layout,
+  palette,
+  radius,
+  space,
+  typography,
+} from "@/constants/design";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function SignInScreen() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSignIn() {
     if (!email.trim() || !password) {
-      setErrorMessage('Enter your email and password.');
+      setErrorMessage("Enter your email and password.");
       return;
     }
 
     setIsSubmitting(true);
-    setErrorMessage('');
+    setErrorMessage("");
 
     try {
       await signIn(email, password);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : 'Unable to sign in.',
+        error instanceof Error ? error.message : "Unable to sign in.",
       );
     } finally {
       setIsSubmitting(false);
@@ -51,31 +53,54 @@ export default function SignInScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <AppScreen includeBottomInset>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
       >
-        <View style={styles.content}>
-          <View>
-            <Text style={styles.wordmark}>VOUCH</Text>
-            <Text style={styles.title}>Dating, thoughtfully introduced.</Text>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.intro}>
+            <VouchWordmark />
+
+            <View style={styles.heroMark}>
+              <Ionicons
+                color={palette.brand}
+                name="heart-outline"
+                size={28}
+              />
+            </View>
+
+            <Text accessibilityRole="header" style={styles.title}>
+              Dating, thoughtfully{" "}
+              <Text style={styles.titleAccent}>introduced.</Text>
+            </Text>
             <Text style={styles.subtitle}>
-              Sign in to review your introductions, dates, and profile.
+              A private membership for considered introductions and supported
+              date experiences.
             </Text>
           </View>
 
-          <View style={styles.form}>
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>Welcome back</Text>
+            <Text style={styles.formSubtitle}>
+              Sign in to your private member account.
+            </Text>
+
             <View style={styles.field}>
               <Text style={styles.label}>Email</Text>
               <TextInput
+                accessibilityLabel="Email"
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect={false}
                 keyboardType="email-address"
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor="#9C968F"
+                placeholderTextColor={palette.subtle}
                 returnKeyType="next"
                 style={styles.input}
                 value={email}
@@ -85,12 +110,13 @@ export default function SignInScreen() {
             <View style={styles.field}>
               <Text style={styles.label}>Password</Text>
               <TextInput
+                accessibilityLabel="Password"
                 autoCapitalize="none"
                 autoComplete="password"
                 onChangeText={setPassword}
-                onSubmitEditing={handleSignIn}
+                onSubmitEditing={() => void handleSignIn()}
                 placeholder="Your password"
-                placeholderTextColor="#9C968F"
+                placeholderTextColor={palette.subtle}
                 returnKeyType="go"
                 secureTextEntry
                 style={styles.input}
@@ -99,99 +125,120 @@ export default function SignInScreen() {
             </View>
 
             {errorMessage ? (
-              <Text accessibilityRole="alert" style={styles.error}>
-                {errorMessage}
-              </Text>
+              <InlineNotice message={errorMessage} tone="danger" />
             ) : null}
 
-            <Pressable
-              accessibilityRole="button"
-              disabled={isSubmitting}
-              onPress={handleSignIn}
-              style={({ pressed }) => [
-                styles.button,
-                pressed && styles.buttonPressed,
-                isSubmitting && styles.buttonDisabled,
-              ]}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.buttonText}>Sign in</Text>
-              )}
-            </Pressable>
+            <AppButton
+              label="Sign in"
+              loading={isSubmitting}
+              onPress={() => void handleSignIn()}
+            />
           </View>
 
-          <Text style={styles.footer}>
-            Membership is private and access is reviewed by Vouch.
-          </Text>
-        </View>
+          <View style={styles.privacyRow}>
+            <Ionicons
+              color={palette.sage}
+              name="lock-closed-outline"
+              size={16}
+            />
+            <Text style={styles.footer}>
+              Membership is private. Access is reviewed by Vouch.
+            </Text>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.canvas },
-  keyboardView: { flex: 1 },
-  content: {
+  flex: {
     flex: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: 28,
-    paddingBottom: 24,
-    paddingTop: 56,
   },
-  wordmark: {
-    color: colors.accent,
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 4,
-    marginBottom: 30,
+  content: {
+    alignSelf: "center",
+    flexGrow: 1,
+    justifyContent: "center",
+    maxWidth: Math.min(layout.contentMaxWidth, 560),
+    paddingBottom: space.xxl,
+    paddingHorizontal: space.xl,
+    paddingTop: space.xxl,
+    width: "100%",
+  },
+  intro: {
+    paddingBottom: space.xxl,
+  },
+  heroMark: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.md,
+    height: 54,
+    justifyContent: "center",
+    marginTop: space.xxxl,
+    transform: [{ rotate: "-4deg" }],
+    width: 54,
   },
   title: {
-    color: colors.ink,
-    fontSize: 38,
-    fontWeight: '600',
-    letterSpacing: -1.2,
-    lineHeight: 43,
-    maxWidth: 330,
+    color: palette.ink,
+    marginTop: space.lg,
+    maxWidth: 460,
+    ...typography.display,
+  },
+  titleAccent: {
+    color: palette.brand,
+    fontFamily: "Georgia",
+    fontStyle: "italic",
+    fontWeight: "600",
   },
   subtitle: {
-    color: colors.muted,
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 16,
-    maxWidth: 340,
+    color: palette.muted,
+    marginTop: space.md,
+    maxWidth: 460,
+    ...typography.body,
   },
-  form: { gap: 18 },
-  field: { gap: 8 },
-  label: { color: colors.ink, fontSize: 14, fontWeight: '600' },
-  input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 10,
+  formCard: {
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    color: colors.ink,
+    gap: space.lg,
+    padding: space.xl,
+  },
+  formTitle: {
+    color: palette.ink,
+    ...typography.heading,
+  },
+  formSubtitle: {
+    color: palette.muted,
+    marginTop: -space.sm,
+    ...typography.small,
+  },
+  field: {
+    gap: space.xs,
+  },
+  label: {
+    color: palette.ink,
+    ...typography.caption,
+  },
+  input: {
+    backgroundColor: palette.canvas,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    color: palette.ink,
     fontSize: 16,
-    height: 54,
-    paddingHorizontal: 16,
+    minHeight: 54,
+    paddingHorizontal: space.md,
   },
-  error: { color: colors.error, fontSize: 14, lineHeight: 20 },
-  button: {
-    alignItems: 'center',
-    backgroundColor: colors.accent,
-    borderRadius: 10,
-    height: 56,
-    justifyContent: 'center',
-    marginTop: 4,
+  privacyRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+    justifyContent: "center",
+    marginTop: space.xl,
   },
-  buttonPressed: { opacity: 0.9 },
-  buttonDisabled: { opacity: 0.65 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   footer: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: 'center',
+    color: palette.muted,
+    ...typography.caption,
   },
 });

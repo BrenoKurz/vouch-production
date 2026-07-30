@@ -1,14 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ColorValue } from 'react-native';
+
+import { palette } from '@/constants/design';
 import { useNotifications } from '@/providers/notification-provider';
 
 function tabIcon(
   name: React.ComponentProps<typeof Ionicons>['name'],
+  activeName: React.ComponentProps<typeof Ionicons>['name'],
   color: ColorValue,
   size: number,
+  focused: boolean,
 ) {
-  return <Ionicons color={color as string} name={name} size={size} />;
+  return (
+    <Ionicons
+      color={color as string}
+      name={focused ? activeName : name}
+      size={size}
+    />
+  );
 }
 
 export default function TabsLayout() {
@@ -17,23 +27,30 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: '#F7F4EF',
+          backgroundColor: palette.canvas,
         },
         headerTitleStyle: {
-          color: '#171717',
+          color: palette.ink,
           fontSize: 18,
           fontWeight: '700',
         },
-        tabBarActiveTintColor: '#352D28',
-        tabBarInactiveTintColor: '#8F8881',
+        tabBarActiveTintColor: palette.brand,
+        tabBarHideOnKeyboard: true,
+        tabBarInactiveTintColor: palette.subtle,
+        tabBarItemStyle: {
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: 1,
+        },
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E6E0D9',
-          height: 84,
-          paddingBottom: 22,
-          paddingTop: 8,
+          backgroundColor: palette.surface,
+          borderTopColor: palette.border,
         },
       }}
     >
@@ -41,8 +58,8 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) =>
-            tabIcon('home-outline', color, size),
+          tabBarIcon: ({ color, size, focused }) =>
+            tabIcon('home-outline', 'home', color, size, focused),
         }}
       />
 
@@ -50,8 +67,8 @@ export default function TabsLayout() {
         name="introductions"
         options={{
           title: 'Introductions',
-          tabBarIcon: ({ color, size }) =>
-            tabIcon('sparkles-outline', color, size),
+          tabBarIcon: ({ color, size, focused }) =>
+            tabIcon('sparkles-outline', 'sparkles', color, size, focused),
         }}
       />
 
@@ -59,8 +76,8 @@ export default function TabsLayout() {
         name="dates"
         options={{
           title: 'Dates',
-          tabBarIcon: ({ color, size }) =>
-            tabIcon('calendar-outline', color, size),
+          tabBarIcon: ({ color, size, focused }) =>
+            tabIcon('calendar-outline', 'calendar', color, size, focused),
         }}
       />
 
@@ -75,13 +92,19 @@ export default function TabsLayout() {
                 : unreadCount
               : undefined,
           tabBarBadgeStyle: {
-            backgroundColor: '#8B4A32',
-            color: '#FFFFFF',
+            backgroundColor: palette.brand,
+            color: palette.white,
             fontSize: 10,
             fontWeight: '800',
           },
-          tabBarIcon: ({ color, size }) =>
-            tabIcon('notifications-outline', color, size),
+          tabBarIcon: ({ color, size, focused }) =>
+            tabIcon(
+              'notifications-outline',
+              'notifications',
+              color,
+              size,
+              focused,
+            ),
         }}
       />
 
@@ -89,8 +112,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) =>
-            tabIcon('person-outline', color, size),
+          tabBarIcon: ({ color, size, focused }) =>
+            tabIcon('person-outline', 'person', color, size, focused),
         }}
       />
     </Tabs>

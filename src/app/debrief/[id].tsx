@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +26,18 @@ import {
   useState,
 } from 'react';
 
+import {
+  AppScreen,
+  ErrorState,
+  LoadingState,
+  StackHeader,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  radius,
+  space,
+} from '@/constants/design';
 import { ApiError, apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import type {
@@ -268,31 +279,23 @@ export default function DebriefScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>Opening your private check-in…</Text>
-        </View>
-      </SafeAreaView>
+        <LoadingState label="Opening your private check-in…" />
+      </AppScreen>
     );
   }
 
   if (!item) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
-        <View style={styles.center}>
-          <Text style={styles.eyebrow}>UNAVAILABLE</Text>
-          <Text style={styles.errorTitle}>
-            This debrief could not be opened.
-          </Text>
-          <Text style={styles.errorBody}>{errorMessage}</Text>
-          <Pressable onPress={() => void load()} style={styles.primaryButton}>
-            <Text style={styles.primaryText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+        <ErrorState
+          body={errorMessage}
+          onRetry={() => void load()}
+          title="This debrief could not be opened"
+        />
+      </AppScreen>
     );
   }
 
@@ -302,12 +305,12 @@ export default function DebriefScreen() {
 
   if (submitted) {
     return (
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
         <Header />
         <View style={styles.center}>
           <View style={styles.successIcon}>
             <Ionicons
-              color="#365C4D"
+              color={palette.sage}
               name="checkmark"
               size={34}
             />
@@ -332,12 +335,12 @@ export default function DebriefScreen() {
             <Text style={styles.primaryText}>Return to date</Text>
           </Pressable>
         </View>
-      </SafeAreaView>
+      </AppScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <Header />
 
       <KeyboardAvoidingView
@@ -373,7 +376,7 @@ export default function DebriefScreen() {
 
           <View style={styles.privacyCard}>
             <Ionicons
-              color="#365C4D"
+              color={palette.sage}
               name="lock-closed-outline"
               size={20}
             />
@@ -454,7 +457,7 @@ export default function DebriefScreen() {
                 multiline
                 onChangeText={setPrivateNote}
                 placeholder="This note is private to Vouch."
-                placeholderTextColor="#9A928A"
+                placeholderTextColor={palette.subtle}
                 style={styles.noteInput}
                 textAlignVertical="top"
                 value={privateNote}
@@ -519,7 +522,7 @@ export default function DebriefScreen() {
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -600,41 +603,18 @@ function ChoiceRow({
 }
 
 function Header() {
-  return (
-    <View style={styles.header}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
-        <Ionicons color="#352D28" name="chevron-back" size={25} />
-      </Pressable>
-      <Text style={styles.wordmark}>VOUCH</Text>
-      <View style={styles.headerSpacer} />
-    </View>
-  );
+  return <StackHeader />;
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: '#F7F4EF' },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 54,
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
+  content: {
+    alignSelf: 'center',
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.lg,
+    width: '100%',
   },
-  backButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 3.2,
-  },
-  headerSpacer: { width: 40 },
-  content: { paddingBottom: 48, paddingHorizontal: 20 },
   personRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -642,8 +622,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   avatar: {
-    backgroundColor: '#EAE4DD',
-    borderRadius: 11,
+    backgroundColor: palette.canvasStrong,
+    borderRadius: radius.sm,
     height: 92,
     width: 76,
   },
@@ -652,19 +632,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   initial: {
-    color: '#776E66',
+    color: palette.brand,
     fontSize: 30,
     fontWeight: '600',
   },
   personCopy: { flex: 1 },
   eyebrow: {
-    color: '#766E67',
+    color: palette.brand,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.8,
   },
   title: {
-    color: '#171717',
+    color: palette.ink,
     fontSize: 25,
     fontWeight: '700',
     letterSpacing: -0.5,
@@ -672,30 +652,30 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   dateText: {
-    color: '#746D66',
+    color: palette.muted,
     fontSize: 13,
     lineHeight: 18,
     marginTop: 5,
   },
   privacyCard: {
     alignItems: 'flex-start',
-    backgroundColor: '#E5ECE8',
-    borderRadius: 11,
+    backgroundColor: palette.sageSoft,
+    borderRadius: radius.sm,
     flexDirection: 'row',
     gap: 10,
     marginTop: 24,
     padding: 15,
   },
   privacyText: {
-    color: '#365C4D',
+    color: palette.sage,
     flex: 1,
     fontSize: 13,
     lineHeight: 19,
   },
   questionCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2DCD5',
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     marginTop: 16,
     padding: 17,
@@ -706,14 +686,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   questionTitle: {
-    color: '#282522',
+    color: palette.ink,
     flex: 1,
     fontSize: 17,
     fontWeight: '700',
     lineHeight: 23,
   },
   optionalLabel: {
-    color: '#8B837B',
+    color: palette.muted,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
@@ -726,28 +706,28 @@ const styles = StyleSheet.create({
   },
   choiceButton: {
     alignItems: 'center',
-    borderColor: '#D8D1CA',
-    borderRadius: 9,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     flex: 1,
     height: 48,
     justifyContent: 'center',
   },
   choiceButtonSelected: {
-    backgroundColor: '#352D28',
-    borderColor: '#352D28',
+    backgroundColor: palette.brand,
+    borderColor: palette.brand,
   },
   choiceText: {
-    color: '#352D28',
+    color: palette.ink,
     fontSize: 15,
     fontWeight: '700',
   },
-  choiceTextSelected: { color: '#FFFFFF' },
+  choiceTextSelected: { color: palette.white },
   reasonList: { gap: 9, marginTop: 15 },
   reasonButton: {
     alignItems: 'center',
-    borderColor: '#DDD6CF',
-    borderRadius: 9,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
     borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -756,22 +736,22 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   reasonButtonSelected: {
-    backgroundColor: '#5A4B43',
-    borderColor: '#5A4B43',
+    backgroundColor: palette.brand,
+    borderColor: palette.brand,
   },
   reasonText: {
-    color: '#423B36',
+    color: palette.inkSoft,
     flex: 1,
     fontSize: 14,
     lineHeight: 19,
   },
-  reasonTextSelected: { color: '#FFFFFF', fontWeight: '700' },
+  reasonTextSelected: { color: palette.white, fontWeight: '700' },
   noteInput: {
-    backgroundColor: '#FBFAF8',
-    borderColor: '#DDD6CF',
-    borderRadius: 9,
+    backgroundColor: palette.canvas,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    color: '#282522',
+    color: palette.ink,
     fontSize: 15,
     lineHeight: 21,
     marginTop: 15,
@@ -779,15 +759,15 @@ const styles = StyleSheet.create({
     padding: 13,
   },
   characterCount: {
-    color: '#8B837B',
+    color: palette.muted,
     fontSize: 11,
     marginTop: 7,
     textAlign: 'right',
   },
   safetyButton: {
     alignItems: 'center',
-    borderColor: '#D7A9A3',
-    borderRadius: 10,
+    borderColor: palette.brandSoftStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
@@ -797,19 +777,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   safetyButtonSelected: {
-    backgroundColor: '#963E36',
-    borderColor: '#963E36',
+    backgroundColor: palette.danger,
+    borderColor: palette.danger,
   },
   safetyText: {
-    color: '#963E36',
+    color: palette.danger,
     fontSize: 14,
     fontWeight: '700',
   },
-  safetyTextSelected: { color: '#FFFFFF' },
+  safetyTextSelected: { color: palette.white },
   inlineError: {
-    backgroundColor: '#F6E9E6',
-    borderRadius: 9,
-    color: '#943D35',
+    backgroundColor: palette.dangerSoft,
+    borderRadius: radius.sm,
+    color: palette.danger,
     fontSize: 14,
     lineHeight: 20,
     marginTop: 18,
@@ -817,8 +797,8 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     height: 56,
     justifyContent: 'center',
     marginTop: 20,
@@ -826,7 +806,7 @@ const styles = StyleSheet.create({
   },
   disabledButton: { opacity: 0.45 },
   primaryText: {
-    color: '#FFFFFF',
+    color: palette.white,
     fontSize: 16,
     fontWeight: '800',
   },
@@ -857,21 +837,21 @@ const styles = StyleSheet.create({
   },
   successIcon: {
     alignItems: 'center',
-    backgroundColor: '#E5ECE8',
+    backgroundColor: palette.sageSoft,
     borderRadius: 34,
     height: 68,
     justifyContent: 'center',
     width: 68,
   },
   successTitle: {
-    color: '#1F1D1B',
+    color: palette.ink,
     fontSize: 25,
     fontWeight: '700',
     marginTop: 20,
     textAlign: 'center',
   },
   successBody: {
-    color: '#6F6861',
+    color: palette.muted,
     fontSize: 15,
     lineHeight: 22,
     marginTop: 10,

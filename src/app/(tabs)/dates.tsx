@@ -1,52 +1,80 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
+import type { Href } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
-  type Href,
-  router,
-  useFocusEffect,
-} from 'expo-router';
-import {
-  ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { useCallback, useState } from 'react';
+} from "react-native";
 
-import { ApiError, apiGet } from '@/lib/api';
-import { useAuth } from '@/providers/auth-provider';
+import {
+  AppScreen,
+  Avatar,
+  EmptyState,
+  InlineNotice,
+  LoadingState,
+  PageHeader,
+  StatusPill,
+  type StatusTone,
+} from "@/components/vouch-ui";
+import {
+  layout,
+  palette,
+  radius,
+  shadow,
+  space,
+  typography,
+} from "@/constants/design";
+import { ApiError, apiGet } from "@/lib/api";
+import { useAuth } from "@/providers/auth-provider";
 import type {
   DateState,
   DatesEnvelope,
   VouchDate,
-} from '@/types/date';
+} from "@/types/date";
 
-const labels: Record<DateState, string> = {
-  proposed: 'Awaiting confirmation',
-  confirmed: 'Confirmed',
-  cancelled: 'Cancelled',
-  scheduled_time_passed: 'Date completed',
-  debrief_pending: 'Debrief pending',
-  completed: 'Completed',
-  disputed: 'Under review',
+const labels: Record<
+  DateState,
+  { label: string; tone: StatusTone }
+> = {
+  proposed: { label: "Awaiting confirmation", tone: "warning" },
+  confirmed: { label: "Confirmed", tone: "positive" },
+  cancelled: { label: "Cancelled", tone: "danger" },
+  scheduled_time_passed: { label: "Date complete", tone: "neutral" },
+  debrief_pending: { label: "Debrief ready", tone: "warning" },
+  completed: { label: "Completed", tone: "neutral" },
+  disputed: { label: "Under review", tone: "danger" },
 };
 
-function formatDateTime(value: string) {
+function formatDate(value: string) {
   const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { day: value, time: "" };
+  }
 
-  if (Number.isNaN(date.getTime())) return value;
+  return {
+    day: new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    }).format(date),
+    time: new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(date),
+  };
+}
 
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(date);
+function priority(item: VouchDate) {
+  if (item.can_complete_debrief) return 0;
+  if (item.can_confirm) return 1;
+  if (item.state === "confirmed") return 2;
+  if (item.state === "proposed") return 3;
+  return 4;
 }
 
 export default function DatesScreen() {
@@ -55,27 +83,37 @@ export default function DatesScreen() {
   const [items, setItems] = useState<VouchDate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const sortedItems = useMemo(
+    () =>
+      [...items].sort((a, b) => {
+        const byPriority = priority(a) - priority(b);
+        if (byPriority !== 0) return byPriority;
+        return (
+          new Date(a.starts_at).getTime() -
+          new Date(b.starts_at).getTime()
+        );
+      }),
+    [items],
+  );
 
   const load = useCallback(
-    async (mode: 'initial' | 'refresh' = 'initial') => {
+    async (mode: "initial" | "refresh" = "initial") => {
       if (!accessToken) return;
 
-      if (mode === 'initial') setIsLoading(true);
-      if (mode === 'refresh') setIsRefreshing(true);
-      setErrorMessage('');
+      if (mode === "initial") setIsLoading(true);
+      else setIsRefreshing(true);
+      setErrorMessage("");
 
       try {
-        const response = await apiGet<DatesEnvelope>(
-          '/dates',
-          accessToken,
-        );
+        const response = await apiGet<DatesEnvelope>("/dates", accessToken);
         setItems(response.data);
       } catch (error) {
         if (
           error instanceof ApiError &&
           (error.status === 401 ||
-            error.code === 'authentication_required')
+            error.code === "authentication_required")
         ) {
           await signOut();
           return;
@@ -84,11 +122,11 @@ export default function DatesScreen() {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : 'Unable to load your dates.',
+            : "Unable to load your dates.",
         );
       } finally {
-        if (mode === 'initial') setIsLoading(false);
-        if (mode === 'refresh') setIsRefreshing(false);
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
     },
     [accessToken, signOut],
@@ -96,85 +134,82 @@ export default function DatesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load('initial');
+      void load();
     }, [load]),
   );
 
-  if (isLoading) {
+  if (isLoading && items.length === 0) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.center}>
-          <ActivityIndicator color="#352D28" size="large" />
-          <Text style={styles.helper}>Loading your dates…</Text>
-        </View>
-      </SafeAreaView>
+      <AppScreen>
+        <LoadingState label="Loading your date plans…" />
+      </AppScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen>
       <FlatList
         contentContainerStyle={[
           styles.list,
-          items.length === 0 && styles.emptyList,
+          sortedItems.length === 0 && styles.emptyList,
         ]}
-        data={items}
+        data={sortedItems}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.eyebrow}>YOUR CONNECTIONS</Text>
-            <Text style={styles.title}>Dates</Text>
-            <Text style={styles.helper}>
-              Proposals, confirmations, and upcoming plans appear here.
-            </Text>
-
+          <View>
+            <PageHeader
+              eyebrow="YOUR PLANS"
+              subtitle="Everything you need before, during, and after a Vouch date."
+              title="Dates"
+            />
             {errorMessage ? (
-              <View style={styles.errorBanner}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
-                <Pressable onPress={() => void load('initial')}>
-                  <Text style={styles.retryText}>Try again</Text>
-                </Pressable>
-              </View>
+              <InlineNotice
+                actionLabel="Try again"
+                message={errorMessage}
+                onAction={() => void load()}
+                tone="danger"
+              />
             ) : null}
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-              <Ionicons
-                color="#766E67"
-                name="calendar-outline"
-                size={28}
-              />
-            </View>
-            <Text style={styles.emptyTitle}>No dates yet</Text>
-            <Text style={styles.emptyBody}>
-              When a date is proposed from a conversation, it will appear
-              here.
-            </Text>
-          </View>
+          <EmptyState
+            body="When you make a plan from a private conversation, it will appear here with everything you need."
+            icon="calendar-outline"
+            title="No dates planned yet"
+          />
         }
         refreshControl={
           <RefreshControl
-            onRefresh={() => void load('refresh')}
+            onRefresh={() => void load("refresh")}
             refreshing={isRefreshing}
-            tintColor="#352D28"
+            tintColor={palette.brand}
           />
         }
         renderItem={({ item }) => <DateCard item={item} />}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 function DateCard({ item }: { item: VouchDate }) {
-  const photo = item.counterpart_profile.photos[0]?.url;
+  const profile = item.counterpart_profile;
+  const date = formatDate(item.starts_at);
+  const state = labels[item.state];
+
+  const actionLabel = item.can_complete_debrief
+    ? "Complete debrief"
+    : item.can_confirm
+      ? "Review proposal"
+      : item.state === "cancelled" && item.can_reschedule
+        ? "Propose a new time"
+        : "View details";
 
   function open() {
     router.push(
       {
-        pathname: '/date/[id]',
+        pathname: "/date/[id]",
         params: { id: item.id },
       } as Href,
     );
@@ -182,219 +217,182 @@ function DateCard({ item }: { item: VouchDate }) {
 
   return (
     <Pressable
+      accessibilityHint="Opens date details"
+      accessibilityLabel={`${state.label} date with ${profile.first_name}, ${date.day} at ${date.time}`}
+      accessibilityRole="button"
       onPress={open}
       style={({ pressed }) => [
         styles.card,
         pressed && styles.pressed,
       ]}
     >
-      {photo ? (
-        <Image source={{ uri: photo }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.initial}>
-            {item.counterpart_profile.first_name
-              .slice(0, 1)
-              .toUpperCase()}
-          </Text>
+      <View style={styles.cardHeader}>
+        <Avatar
+          firstName={profile.first_name}
+          size={64}
+          uri={profile.photos[0]?.url}
+        />
+        <View style={styles.personCopy}>
+          <StatusPill label={state.label} tone={state.tone} />
+          <Text style={styles.name}>With {profile.first_name}</Text>
         </View>
-      )}
+        <Ionicons
+          color={palette.subtle}
+          name="chevron-forward"
+          size={20}
+        />
+      </View>
 
-      <View style={styles.cardBody}>
-        <Text style={styles.name}>
-          {item.counterpart_profile.first_name}
+      <View style={styles.details}>
+        <DetailRow
+          icon="calendar-outline"
+          label="Date"
+          value={date.day}
+        />
+        <View style={styles.detailDivider} />
+        <DetailRow icon="time-outline" label="Time" value={date.time} />
+        <View style={styles.detailDivider} />
+        <DetailRow
+          icon="location-outline"
+          label="Place"
+          value={item.venue?.name ?? "Decide together"}
+        />
+      </View>
+
+      {item.reschedule_count > 0 ? (
+        <Text style={styles.updateText}>
+          This plan has been updated {item.reschedule_count}{" "}
+          {item.reschedule_count === 1 ? "time" : "times"}.
         </Text>
-        <Text style={styles.dateTime}>
-          {formatDateTime(item.starts_at)}
-        </Text>
-        <Text style={styles.venue}>
-          {item.venue?.name ?? 'Location to be decided together'}
-        </Text>
+      ) : null}
 
-        {item.reschedule_count > 0 ? (
-          <Text style={styles.venue}>
-            Updated {item.reschedule_count}{' '}
-            {item.reschedule_count === 1 ? 'time' : 'times'}
-          </Text>
-        ) : null}
-
-        <View style={styles.cardFooter}>
-          <View
-            style={[
-              styles.badge,
-              item.state === 'confirmed' && styles.confirmedBadge,
-            ]}
-          >
-            <Text
-              style={[
-                styles.badgeText,
-                item.state === 'confirmed' &&
-                  styles.confirmedBadgeText,
-              ]}
-            >
-              {labels[item.state]}
-            </Text>
-          </View>
-
-          {item.can_complete_debrief ? (
-            <Text style={styles.actionText}>Debrief →</Text>
-          ) : item.can_confirm ? (
-            <Text style={styles.actionText}>Review →</Text>
-          ) : item.state === 'cancelled' &&
-            item.can_reschedule ? (
-            <Text style={styles.actionText}>Reschedule →</Text>
-          ) : (
-            <Text style={styles.actionText}>View →</Text>
-          )}
-        </View>
+      <View style={styles.actionRow}>
+        <Text style={styles.actionLabel}>{actionLabel}</Text>
+        <Ionicons
+          color={palette.brand}
+          name="arrow-forward"
+          size={18}
+        />
       </View>
     </Pressable>
   );
 }
 
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.detailRow}>
+      <View style={styles.detailIcon}>
+        <Ionicons color={palette.brand} name={icon} size={18} />
+      </View>
+      <View style={styles.detailCopy}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F7F4EF' },
-  list: { paddingBottom: 36, paddingHorizontal: 20 },
-  emptyList: { flexGrow: 1 },
-  header: { paddingBottom: 22, paddingTop: 22 },
-  eyebrow: {
-    color: '#766E67',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
+  list: {
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.lg,
+    width: "100%",
   },
-  title: {
-    color: '#171717',
-    fontSize: 34,
-    fontWeight: '600',
-    letterSpacing: -1,
-    marginTop: 10,
-  },
-  helper: {
-    color: '#68635D',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 10,
-  },
-  errorBanner: {
-    backgroundColor: '#F6E9E6',
-    borderRadius: 10,
-    marginTop: 18,
-    padding: 14,
-  },
-  errorText: {
-    color: '#8D3933',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  retryText: {
-    color: '#352D28',
-    fontSize: 14,
-    fontWeight: '800',
-    marginTop: 8,
+  emptyList: {
+    flexGrow: 1,
   },
   card: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2DCD5',
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    flexDirection: 'row',
-    gap: 14,
-    marginBottom: 14,
-    padding: 15,
+    marginBottom: space.lg,
+    overflow: "hidden",
+    padding: space.lg,
+    ...shadow,
   },
-  pressed: { opacity: 0.86 },
-  avatar: {
-    backgroundColor: '#EAE4DD',
-    borderRadius: 10,
-    height: 86,
-    width: 72,
+  pressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.995 }],
   },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  cardHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.sm,
   },
-  initial: {
-    color: '#776E66',
-    fontSize: 30,
-    fontWeight: '600',
+  personCopy: {
+    flex: 1,
   },
-  cardBody: { flex: 1 },
   name: {
-    color: '#171717',
-    fontSize: 20,
-    fontWeight: '700',
+    color: palette.ink,
+    marginTop: space.xs,
+    ...typography.heading,
   },
-  dateTime: {
-    color: '#352D28',
-    fontSize: 15,
-    fontWeight: '700',
-    marginTop: 5,
+  details: {
+    backgroundColor: palette.canvas,
+    borderRadius: radius.md,
+    marginTop: space.lg,
+    paddingHorizontal: space.md,
   },
-  venue: {
-    color: '#746D66',
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4,
+  detailRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.sm,
+    minHeight: 68,
+    paddingVertical: space.sm,
   },
-  cardFooter: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
+  detailIcon: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.sm,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
   },
-  badge: {
-    backgroundColor: '#F4E4DB',
-    borderRadius: 7,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  confirmedBadge: { backgroundColor: '#E5ECE8' },
-  badgeText: {
-    color: '#7A4432',
-    fontSize: 9,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  confirmedBadgeText: { color: '#365C4D' },
-  actionText: {
-    color: '#352D28',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  emptyState: {
-    alignItems: 'center',
+  detailCopy: {
     flex: 1,
-    justifyContent: 'center',
-    paddingBottom: 80,
-    paddingHorizontal: 34,
   },
-  emptyIcon: {
-    alignItems: 'center',
-    backgroundColor: '#EEEAE5',
-    borderRadius: 28,
-    height: 56,
-    justifyContent: 'center',
-    width: 56,
+  detailLabel: {
+    color: palette.muted,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1,
+    lineHeight: 13,
+    textTransform: "uppercase",
   },
-  emptyTitle: {
-    color: '#1F1D1B',
-    fontSize: 23,
-    fontWeight: '700',
-    marginTop: 18,
+  detailValue: {
+    color: palette.ink,
+    marginTop: 2,
+    ...typography.bodyStrong,
   },
-  emptyBody: {
-    color: '#6F6861',
-    fontSize: 15,
-    lineHeight: 22,
-    marginTop: 9,
-    textAlign: 'center',
+  detailDivider: {
+    backgroundColor: palette.border,
+    height: 1,
+    marginLeft: 48,
   },
-  center: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 28,
+  updateText: {
+    color: palette.muted,
+    marginTop: space.sm,
+    ...typography.caption,
+  },
+  actionRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: space.lg,
+  },
+  actionLabel: {
+    color: palette.brand,
+    ...typography.bodyStrong,
   },
 });

@@ -1,11 +1,20 @@
 import {
-  Pressable,
-  SafeAreaView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import {
+  AppButton,
+  AppScreen,
+  VouchWordmark,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  space,
+  typography,
+} from '@/constants/design';
 import { useAuth } from '@/providers/auth-provider';
 import {
   type ApplicationStatus,
@@ -116,87 +125,54 @@ function StatusLayout({
   onSecondary: () => void | Promise<void>;
 }) {
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <View style={styles.content}>
-        <Text style={styles.wordmark}>VOUCH</Text>
+        <VouchWordmark />
         <Text style={styles.eyebrow}>{eyebrow}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.body}>{body}</Text>
 
-        <Pressable onPress={onPrimary} style={styles.primaryButton}>
-          <Text style={styles.primaryText}>{primaryLabel}</Text>
-        </Pressable>
-
-        <Pressable onPress={onSecondary} style={styles.secondaryButton}>
-          <Text style={styles.secondaryText}>{secondaryLabel}</Text>
-        </Pressable>
+        <AppButton
+          label={primaryLabel}
+          onPress={() => void onPrimary()}
+          style={styles.primaryButton}
+        />
+        <AppButton
+          label={secondaryLabel}
+          onPress={() => void onSecondary()}
+          variant="secondary"
+        />
       </View>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F4EF',
-  },
   content: {
+    alignSelf: 'center',
     flex: 1,
     justifyContent: 'center',
-    padding: 28,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 4,
-    marginBottom: 44,
+    maxWidth: Math.min(layout.contentMaxWidth, 560),
+    padding: space.xl,
+    width: '100%',
   },
   eyebrow: {
-    color: '#786F67',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
+    color: palette.brand,
+    marginTop: space.xxxl,
+    ...typography.label,
   },
   title: {
-    color: '#171717',
-    fontSize: 36,
-    fontWeight: '600',
-    letterSpacing: -1,
-    lineHeight: 42,
-    marginTop: 14,
+    color: palette.ink,
+    marginTop: space.sm,
+    ...typography.display,
   },
   body: {
-    color: '#68635D',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 16,
+    color: palette.muted,
+    marginBottom: space.xl,
+    marginTop: space.md,
+    ...typography.body,
   },
   primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
-    height: 56,
-    justifyContent: 'center',
-    marginTop: 36,
-  },
-  primaryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    alignItems: 'center',
-    borderColor: '#BEB6AE',
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 54,
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  secondaryText: {
-    color: '#352D28',
-    fontSize: 16,
-    fontWeight: '700',
+    marginBottom: space.sm,
   },
 });

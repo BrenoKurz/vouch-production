@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +12,18 @@ import {
 } from 'react-native';
 import { useMemo, useState } from 'react';
 
+import {
+  AppScreen,
+  InlineNotice,
+  VouchWordmark,
+} from '@/components/vouch-ui';
+import {
+  layout,
+  palette,
+  radius,
+  space,
+  typography,
+} from '@/constants/design';
 import { ApiError, apiPost } from '@/lib/api';
 import { useAuth } from '@/providers/auth-provider';
 import { useMemberAccess } from '@/providers/member-access-provider';
@@ -146,7 +157,7 @@ export default function ApplicationStartScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen includeBottomInset>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
@@ -157,7 +168,7 @@ export default function ApplicationStartScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View>
-            <Text style={styles.wordmark}>VOUCH</Text>
+            <VouchWordmark />
             <Text style={styles.eyebrow}>MEMBERSHIP APPLICATION</Text>
             <Text style={styles.title}>Tell us a little about you.</Text>
             <Text style={styles.body}>
@@ -218,9 +229,7 @@ export default function ApplicationStartScreen() {
             />
 
             {errorMessage ? (
-              <Text accessibilityRole="alert" style={styles.formError}>
-                {errorMessage}
-              </Text>
+              <InlineNotice message={errorMessage} tone="danger" />
             ) : null}
 
             <Pressable
@@ -233,7 +242,7 @@ export default function ApplicationStartScreen() {
               ]}
             >
               {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={palette.white} />
               ) : (
                 <Text style={styles.primaryText}>
                   Submit application
@@ -254,7 +263,7 @@ export default function ApplicationStartScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -279,7 +288,7 @@ function Field({
 
       <TextInput
         autoCorrect={false}
-        placeholderTextColor="#9C968F"
+        placeholderTextColor={palette.subtle}
         style={[styles.input, error && styles.inputError]}
         {...inputProps}
       />
@@ -290,44 +299,31 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F7F4EF',
-  },
   flex: {
     flex: 1,
   },
   content: {
-    paddingBottom: 36,
-    paddingHorizontal: 26,
-    paddingTop: 46,
-  },
-  wordmark: {
-    color: '#352D28',
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 4,
+    alignSelf: 'center',
+    maxWidth: Math.min(layout.contentMaxWidth, 600),
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.xl,
+    paddingTop: space.xxl,
+    width: '100%',
   },
   eyebrow: {
-    color: '#776F68',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.8,
-    marginTop: 42,
+    color: palette.brand,
+    marginTop: space.xxxl,
+    ...typography.label,
   },
   title: {
-    color: '#171717',
-    fontSize: 36,
-    fontWeight: '600',
-    letterSpacing: -1,
-    lineHeight: 42,
-    marginTop: 12,
+    color: palette.ink,
+    marginTop: space.sm,
+    ...typography.display,
   },
   body: {
-    color: '#68635D',
-    fontSize: 16,
-    lineHeight: 24,
-    marginTop: 14,
+    color: palette.muted,
+    marginTop: space.sm,
+    ...typography.body,
   },
   form: {
     gap: 19,
@@ -342,42 +338,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: {
-    color: '#24211F',
+    color: palette.ink,
     fontSize: 14,
     fontWeight: '700',
   },
   optional: {
-    color: '#817A73',
+    color: palette.muted,
     fontSize: 12,
   },
   input: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DCD7D0',
-    borderRadius: 10,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    color: '#171717',
+    color: palette.ink,
     fontSize: 16,
     height: 54,
     paddingHorizontal: 16,
   },
   inputError: {
-    borderColor: '#A33A32',
+    borderColor: palette.danger,
   },
   readOnlyInput: {
-    backgroundColor: '#EEEAE5',
-    borderColor: '#DCD7D0',
-    borderRadius: 10,
+    backgroundColor: palette.canvasStrong,
+    borderColor: palette.border,
+    borderRadius: radius.sm,
     borderWidth: 1,
     minHeight: 54,
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   readOnlyText: {
-    color: '#6F6861',
+    color: palette.muted,
     fontSize: 16,
   },
   fieldError: {
-    color: '#A33A32',
+    color: palette.danger,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -391,27 +387,27 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#352D28',
-    borderRadius: 10,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
     height: 56,
     justifyContent: 'center',
     marginTop: 6,
   },
   primaryText: {
-    color: '#FFFFFF',
+    color: palette.white,
     fontSize: 16,
     fontWeight: '700',
   },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: '#BEB6AE',
-    borderRadius: 10,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     height: 54,
     justifyContent: 'center',
   },
   secondaryText: {
-    color: '#352D28',
+    color: palette.ink,
     fontSize: 16,
     fontWeight: '700',
   },

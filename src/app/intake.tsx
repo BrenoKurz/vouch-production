@@ -1,13 +1,12 @@
 import { useCallback, useState } from "react";
 import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,8 @@ import {
   View,
 } from "react-native";
 
+import { AppScreen, StackHeader } from "@/components/vouch-ui";
+import { layout } from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { uploadProfilePhoto } from "@/lib/profile-photos";
 import { useAuth } from "@/providers/auth-provider";
@@ -477,10 +478,8 @@ export default function IntakeScreen() {
         : "";
 
   return (
-    <>
-      <Stack.Screen options={{ title: "Matchmaking intake" }} />
-
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
+        <StackHeader title="Matchmaking intake" />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.flex}
@@ -753,8 +752,7 @@ export default function IntakeScreen() {
             ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
+      </AppScreen>
   );
 }
 
@@ -1087,9 +1085,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
     paddingBottom: 48,
     paddingHorizontal: 22,
     paddingTop: 26,
+    width: "100%",
   },
   eyebrow: {
     color: "#8A8179",

@@ -58,31 +58,19 @@ function RootNavigator() {
 
         <Stack.Protected guard={hasInvitedAccess}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="verification" />
+          <Stack.Screen name="intake" />
+          <Stack.Screen name="edit-profile" />
           <Stack.Screen name="introduction/[id]" />
           <Stack.Screen name="conversation/[id]" />
           <Stack.Screen name="schedule-date/[conversationId]" />
           <Stack.Screen name="date/[id]" />
           <Stack.Screen name="debrief/[id]" />
-        <Stack.Screen
-          name="cancel-date/[id]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="reschedule-date/[id]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="report-safety/[conversationId]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="safety-case/[id]"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="safety-cases/index"
-          options={{ headerShown: false }}
-        />
+          <Stack.Screen name="cancel-date/[id]" />
+          <Stack.Screen name="reschedule-date/[id]" />
+          <Stack.Screen name="report-safety/[conversationId]" />
+          <Stack.Screen name="safety-case/[id]" />
+          <Stack.Screen name="safety-cases/index" />
         </Stack.Protected>
       </Stack>
     </>

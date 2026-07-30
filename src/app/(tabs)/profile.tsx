@@ -5,13 +5,24 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 
+import {
+  AppScreen,
+  ErrorState,
+  LoadingState,
+} from "@/components/vouch-ui";
+import {
+  layout,
+  palette,
+  radius,
+  space,
+  typography,
+} from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import type {
@@ -221,40 +232,26 @@ export default function ProfileScreen() {
 
   if (isLoading && !profile) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#352D28" />
-          <Text style={styles.loadingText}>Loading your profile…</Text>
-        </View>
-      </SafeAreaView>
+      <AppScreen>
+        <LoadingState label="Loading your private profile…" />
+      </AppScreen>
     );
   }
 
   if (!profile) {
     return (
-      <SafeAreaView style={styles.screen}>
-        <View style={styles.centered}>
-          <Text style={styles.errorTitle}>Profile unavailable</Text>
-          <Text style={styles.errorText}>
-            {errorMessage ?? "We could not load your profile."}
-          </Text>
-
-          <Pressable
-            onPress={() => void loadProfile()}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={styles.primaryButtonText}>Try again</Text>
-          </Pressable>
-        </View>
-      </SafeAreaView>
+      <AppScreen>
+        <ErrorState
+          body={errorMessage ?? "We could not load your profile."}
+          onRetry={() => void loadProfile()}
+          title="Profile unavailable"
+        />
+      </AppScreen>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
+    <AppScreen>
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
@@ -462,7 +459,7 @@ export default function ProfileScreen() {
                   ]}
                 >
                   {isChangingMembership ? (
-                    <ActivityIndicator color="#352D28" />
+                    <ActivityIndicator color={palette.brand} />
                   ) : (
                     <Text
                       style={[
@@ -497,14 +494,14 @@ export default function ProfileScreen() {
             ]}
           >
             {isSigningOut ? (
-              <ActivityIndicator color="#352D28" />
+              <ActivityIndicator color={palette.brand} />
             ) : (
               <Text style={styles.signOutText}>Sign out</Text>
             )}
           </Pressable>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
@@ -527,13 +524,16 @@ function ProfileField({
 
 const styles = StyleSheet.create({
   screen: {
-    backgroundColor: "#F7F4EF",
+    backgroundColor: palette.canvas,
     flex: 1,
   },
   content: {
-    paddingBottom: 48,
-    paddingHorizontal: 22,
-    paddingTop: 22,
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
+    paddingBottom: space.xxxl,
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg,
+    width: "100%",
   },
   centered: {
     alignItems: "center",
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     padding: 30,
   },
   loadingText: {
-    color: "#746D66",
+    color: palette.muted,
     fontSize: 15,
     marginTop: 14,
   },
@@ -553,19 +553,18 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   eyebrow: {
-    color: "#8A8179",
+    color: palette.brand,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.5,
   },
   title: {
-    color: "#171717",
-    fontSize: 34,
-    fontWeight: "700",
+    color: palette.ink,
     marginTop: 7,
+    ...typography.title,
   },
   subtitle: {
-    color: "#746D66",
+    color: palette.muted,
     fontSize: 16,
     marginTop: 5,
   },
@@ -577,33 +576,33 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   headerStatusText: {
-    color: "#352D28",
+    color: palette.ink,
     fontSize: 11,
     fontWeight: "800",
   },
   editButton: {
     alignItems: "center",
-    backgroundColor: "#352D28",
-    borderRadius: 9,
-    height: 50,
+    backgroundColor: palette.brand,
+    borderRadius: radius.sm,
+    minHeight: 52,
     justifyContent: "center",
     marginBottom: 22,
   },
   editButtonText: {
-    color: "#FFFFFF",
+    color: palette.white,
     fontSize: 15,
     fontWeight: "700",
   },
   warningCard: {
-    backgroundColor: "#FFF4DE",
-    borderColor: "#E7D1A6",
-    borderRadius: 10,
+    backgroundColor: palette.amberSoft,
+    borderColor: "#E6D5B5",
+    borderRadius: radius.sm,
     borderWidth: 1,
     marginBottom: 20,
     padding: 14,
   },
   warningText: {
-    color: "#765A24",
+    color: palette.amber,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -611,16 +610,14 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
   sectionTitle: {
-    color: "#352D28",
-    fontSize: 14,
-    fontWeight: "800",
-    letterSpacing: 0.3,
+    color: palette.ink,
     marginBottom: 11,
+    ...typography.heading,
   },
   progressCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 17,
   },
@@ -633,18 +630,18 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   progressLabel: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 15,
     fontWeight: "700",
   },
   progressDescription: {
-    color: "#7A726B",
+    color: palette.muted,
     fontSize: 13,
     lineHeight: 19,
     marginTop: 4,
   },
   divider: {
-    backgroundColor: "#ECE7E2",
+    backgroundColor: palette.border,
     height: 1,
     marginVertical: 17,
   },
@@ -654,31 +651,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   statusText: {
-    color: "#352D28",
+    color: palette.ink,
     fontSize: 11,
     fontWeight: "800",
   },
   statusPositive: {
-    backgroundColor: "#DCEBDD",
+    backgroundColor: palette.sageSoft,
   },
   statusPending: {
-    backgroundColor: "#F4E7C9",
+    backgroundColor: palette.amberSoft,
   },
   statusAttention: {
-    backgroundColor: "#F3D8D4",
+    backgroundColor: palette.dangerSoft,
   },
   statusNeutral: {
-    backgroundColor: "#E9E5E1",
+    backgroundColor: palette.canvasStrong,
   },
   card: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     paddingHorizontal: 17,
   },
   fieldRow: {
-    borderBottomColor: "#ECE7E2",
+    borderBottomColor: palette.border,
     borderBottomWidth: 1,
     paddingVertical: 15,
   },
@@ -686,25 +683,25 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   fieldLabel: {
-    color: "#847B73",
+    color: palette.muted,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 0.7,
     textTransform: "uppercase",
   },
   fieldValue: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 15,
     fontWeight: "600",
     marginTop: 6,
   },
   summaryCard: {
-    backgroundColor: "#EEE8E1",
-    borderRadius: 12,
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.md,
     padding: 18,
   },
   summaryText: {
-    color: "#433C37",
+    color: palette.inkSoft,
     fontSize: 15,
     lineHeight: 23,
   },
@@ -712,72 +709,72 @@ const styles = StyleSheet.create({
     gap: 11,
   },
   promptCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 17,
   },
   promptQuestion: {
-    color: "#81776F",
+    color: palette.brand,
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
   promptAnswer: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 16,
     lineHeight: 23,
     marginTop: 9,
   },
   emptyCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 18,
   },
   emptyTitle: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 15,
     fontWeight: "700",
   },
   emptyText: {
-    color: "#7A726B",
+    color: palette.muted,
     fontSize: 14,
     lineHeight: 20,
     marginTop: 6,
   },
   accountCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 18,
   },
   membershipCard: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#E3DDD6",
-    borderRadius: 12,
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: 18,
   },
   membershipStatus: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 18,
     fontWeight: "700",
   },
   membershipDescription: {
-    color: "#746D66",
+    color: palette.muted,
     fontSize: 14,
     lineHeight: 21,
     marginTop: 7,
   },
   membershipButton: {
     alignItems: "center",
-    borderColor: "#BEB6AE",
-    borderRadius: 9,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     height: 48,
     justifyContent: "center",
@@ -785,37 +782,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   membershipButtonDestructive: {
-    borderColor: "#C98D86",
+    borderColor: palette.brandSoftStrong,
   },
   membershipButtonText: {
-    color: "#352D28",
+    color: palette.ink,
     fontSize: 14,
     fontWeight: "700",
   },
   membershipButtonTextDestructive: {
-    color: "#8A352B",
+    color: palette.danger,
   },
   accountTitle: {
-    color: "#292421",
+    color: palette.ink,
     fontSize: 16,
     fontWeight: "700",
   },
   accountEmail: {
-    color: "#746D66",
+    color: palette.muted,
     fontSize: 14,
     marginTop: 6,
   },
   signOutButton: {
     alignItems: "center",
-    borderColor: "#BEB6AE",
-    borderRadius: 9,
+    borderColor: palette.borderStrong,
+    borderRadius: radius.sm,
     borderWidth: 1,
     height: 50,
     justifyContent: "center",
     marginTop: 18,
   },
   signOutText: {
-    color: "#352D28",
+    color: palette.ink,
     fontSize: 15,
     fontWeight: "700",
   },

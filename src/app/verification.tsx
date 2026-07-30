@@ -1,12 +1,11 @@
 import { useCallback, useState } from "react";
 import * as Crypto from "expo-crypto";
-import { Stack, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,8 @@ import {
   View,
 } from "react-native";
 
+import { AppScreen, StackHeader } from "@/components/vouch-ui";
+import { layout } from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import type {
@@ -172,10 +173,8 @@ export default function VerificationScreen() {
   }
 
   return (
-    <>
-      <Stack.Screen options={{ title: "Identity verification" }} />
-
-      <SafeAreaView style={styles.screen}>
+      <AppScreen includeBottomInset>
+        <StackHeader title="Identity verification" />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.flex}
@@ -361,8 +360,7 @@ export default function VerificationScreen() {
             ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
-    </>
+      </AppScreen>
   );
 }
 
@@ -392,9 +390,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    alignSelf: "center",
+    maxWidth: layout.contentMaxWidth,
     paddingBottom: 48,
     paddingHorizontal: 22,
     paddingTop: 26,
+    width: "100%",
   },
   eyebrow: {
     color: "#8A8179",
