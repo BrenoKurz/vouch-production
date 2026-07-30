@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.17.0",
+    "version": "0.18.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -213,7 +213,9 @@
         "required": [
           "body",
           "approved_by_staff_id",
-          "approved_at"
+          "approved_at",
+          "source",
+          "human_reviewed"
         ],
         "properties": {
           "body": {
@@ -225,6 +227,69 @@
           "approved_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "human_curated",
+              "ai_assisted"
+            ]
+          },
+          "human_reviewed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "AiMatchmakingPreferencesDto": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "debrief_learning_enabled",
+          "consent_version",
+          "consented_at",
+          "version"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "debrief_learning_enabled": {
+            "type": "boolean"
+          },
+          "consent_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "consented_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "AiMatchmakingPreferencesUpdateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "debrief_learning_enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "debrief_learning_enabled": {
+            "type": "boolean",
+            "description": "Requires enabled=true. Only structured date outcomes are eligible; private debrief notes are excluded."
           }
         }
       },
@@ -4185,6 +4250,142 @@
           "404": {
             "$ref": "#/components/responses/NotFound",
             "description": "Member profile not found."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/members/me/ai-matchmaking": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Get the authenticated member's AI matchmaking consent",
+        "description": "Returns explicit, revocable AI-matchmaking and structured-debrief-learning preferences. AI matchmaking is disabled by default.",
+        "operationId": "getMyAiMatchmakingPreferences",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current AI matchmaking preferences.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Resource-Version": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AiMatchmakingPreferencesDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Update the authenticated member's AI matchmaking consent",
+        "description": "Records or revokes explicit consent. Enabling structured date-feedback learning is optional and never includes private debrief notes.",
+        "operationId": "updateMyAiMatchmakingPreferences",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatchVersion"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiMatchmakingPreferencesUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI matchmaking preferences updated.",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Resource-Version": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/AiMatchmakingPreferencesDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "409": {
             "$ref": "#/components/responses/Conflict"

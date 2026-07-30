@@ -1,8 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import * as Crypto from "expo-crypto";
 import { File } from "expo-file-system";
 
 import { apiPost } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import type {
   LocalProfilePhotoAsset,
   ProfilePhotoUploadCompleteEnvelope,
@@ -12,25 +12,6 @@ import type {
   RegisterProfilePhotoEnvelope,
   RegisterProfilePhotoRequest,
 } from "@/types/intake";
-
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-const publishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-if (!apiBaseUrl || !publishableKey) {
-  throw new Error(
-    "Missing Vouch API or Supabase publishable-key configuration.",
-  );
-}
-
-const supabaseUrl = apiBaseUrl.replace(/\/functions\/v1\/api-v1\/?$/, "");
-
-const storageClient = createClient(supabaseUrl, publishableKey, {
-  auth: {
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-    persistSession: false,
-  },
-});
 
 const MAX_PROFILE_PHOTO_BYTES = 10 * 1024 * 1024;
 
@@ -75,7 +56,7 @@ export async function uploadProfilePhoto(input: {
     throw new Error("The profile-photo upload could not be authorized.");
   }
 
-  const { error: uploadError } = await storageClient.storage
+  const { error: uploadError } = await supabase.storage
     .from(reservation.data.bucket)
     .uploadToSignedUrl(reservation.data.storage_path, uploadToken, bytes, {
       contentType,

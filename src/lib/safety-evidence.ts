@@ -1,40 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
 import * as Crypto from 'expo-crypto';
 import { File } from 'expo-file-system';
 import { apiPost } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import type {
   LocalEvidenceAsset,
   SafetyCaseEnvelope,
   UploadCompleteEnvelope,
   UploadReservationEnvelope,
 } from '@/types/safety';
-
-const apiBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
-const publishableKey =
-  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-if (!apiBaseUrl || !publishableKey) {
-  throw new Error(
-    'Missing Vouch API or Supabase publishable-key configuration.',
-  );
-}
-
-const supabaseUrl = apiBaseUrl.replace(
-  /\/functions\/v1\/api-v1\/?$/,
-  '',
-);
-
-const storageClient = createClient(
-  supabaseUrl,
-  publishableKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-  },
-);
 
 const MAX_EVIDENCE_BYTES = 10 * 1024 * 1024;
 
@@ -76,7 +49,7 @@ export async function attachSafetyEvidence(input: {
   const file = new File(asset.uri);
   const bytes = await file.arrayBuffer();
 
-  const { error: uploadError } = await storageClient.storage
+  const { error: uploadError } = await supabase.storage
     .from(reservation.data.bucket)
     .uploadToSignedUrl(
       reservation.data.storage_path,

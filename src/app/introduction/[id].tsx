@@ -281,6 +281,8 @@ export default function IntroductionDetailScreen() {
   const profile = item.profile_snapshot;
   const canAccept = item.available_actions.includes('accept');
   const canPass = item.available_actions.includes('pass');
+  const isAiAssisted =
+    item.introduction_note.source === 'ai_assisted';
   const conversationId = item.conversation_id;
   const canOpenConversation = Boolean(
     conversationId &&
@@ -360,7 +362,11 @@ export default function IntroductionDetailScreen() {
 
         {item.introduction_note.body ? (
           <View style={styles.noteCard}>
-            <Text style={styles.eyebrow}>A NOTE FROM VOUCH</Text>
+            <Text style={styles.eyebrow}>
+              {isAiAssisted
+                ? 'AI-ASSISTED · REVIEWED BY VOUCH'
+                : 'A NOTE FROM VOUCH'}
+            </Text>
             <Text style={styles.noteText}>
               “{item.introduction_note.body}”
             </Text>
@@ -384,15 +390,27 @@ export default function IntroductionDetailScreen() {
             </View>
           </View>
           <Text style={styles.lensBody}>
-            Chemistry cannot be reduced to a percentage. This introduction was
-            human-curated from both private dossiers; use these signals to
-            decide whether one conversation feels worth exploring.
+            {isAiAssisted
+              ? 'Chemistry cannot be reduced to a percentage. AI helped surface this possibility from approved dossier facts, then a Vouch matchmaker reviewed both people and approved the note. Use your own curiosity to decide whether one conversation feels worthwhile.'
+              : 'Chemistry cannot be reduced to a percentage. This introduction was human-curated from both private dossiers; use these signals to decide whether one conversation feels worth exploring.'}
           </Text>
           <View style={styles.lensSignals}>
             <LensSignal
-              icon="heart-outline"
-              label="Human-curated"
-              value="Selected with both members’ goals and boundaries in mind"
+              icon={
+                isAiAssisted
+                  ? 'sparkles-outline'
+                  : 'heart-outline'
+              }
+              label={
+                isAiAssisted
+                  ? 'AI-assisted, human-approved'
+                  : 'Human-curated'
+              }
+              value={
+                isAiAssisted
+                  ? 'Shortlisted with AI, then checked and approved by a Vouch matchmaker'
+                  : 'Selected with both members’ goals and boundaries in mind'
+              }
             />
             <LensSignal
               icon="chatbubbles-outline"

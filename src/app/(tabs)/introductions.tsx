@@ -278,6 +278,23 @@ function IntroductionCard({ item }: { item: Introduction }) {
           </View>
         </View>
 
+        <View style={styles.sourceRow}>
+          <Ionicons
+            color={palette.sage}
+            name={
+              item.introduction_note.source === "ai_assisted"
+                ? "sparkles-outline"
+                : "people-outline"
+            }
+            size={15}
+          />
+          <Text style={styles.sourceText}>
+            {item.introduction_note.source === "ai_assisted"
+              ? "AI-assisted · reviewed by a Vouch matchmaker"
+              : "Selected by a Vouch matchmaker"}
+          </Text>
+        </View>
+
         {item.introduction_note.body ? (
           <View style={styles.noteBlock}>
             <Text style={styles.noteLabel}>WHY VOUCH INTRODUCED YOU</Text>
@@ -391,6 +408,17 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     width: 40,
+  },
+  sourceRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+    marginTop: space.md,
+  },
+  sourceText: {
+    color: palette.sage,
+    flex: 1,
+    ...typography.caption,
   },
   noteBlock: {
     backgroundColor: palette.brandSoft,

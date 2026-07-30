@@ -1697,6 +1697,30 @@ export interface paths {
         patch: operations["updateMyMemberProfile"];
         trace?: never;
     };
+    "/members/me/ai-matchmaking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the authenticated member's AI matchmaking consent
+         * @description Returns explicit, revocable AI-matchmaking and structured-debrief-learning preferences. AI matchmaking is disabled by default.
+         */
+        get: operations["getMyAiMatchmakingPreferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update the authenticated member's AI matchmaking consent
+         * @description Records or revokes explicit consent. Enabling structured date-feedback learning is optional and never includes private debrief notes.
+         */
+        patch: operations["updateMyAiMatchmakingPreferences"];
+        trace?: never;
+    };
     "/members/me/membership": {
         parameters: {
             query?: never;
@@ -1863,6 +1887,23 @@ export interface components {
             approved_by_staff_id: string;
             /** Format: date-time */
             approved_at: string;
+            /** @enum {string} */
+            source: "human_curated" | "ai_assisted";
+            /** @constant */
+            human_reviewed: true;
+        };
+        AiMatchmakingPreferencesDto: {
+            enabled: boolean;
+            debrief_learning_enabled: boolean;
+            consent_version: string | null;
+            /** Format: date-time */
+            consented_at: string | null;
+            version: number;
+        };
+        AiMatchmakingPreferencesUpdateRequest: {
+            enabled: boolean;
+            /** @description Requires enabled=true. Only structured date outcomes are eligible; private debrief notes are excluded. */
+            debrief_learning_enabled: boolean;
         };
         MemberIntroductionDto: {
             id: string;
@@ -2444,6 +2485,71 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             /** @description Member profile not found. */
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Conflict"];
+        };
+    };
+    getMyAiMatchmakingPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current AI matchmaking preferences. */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AiMatchmakingPreferencesDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateMyAiMatchmakingPreferences: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+                /** @description Integer resource version for optimistic concurrency (matches the `version` field of the target resource, optionally quoted as an ETag). Stale value returns 409 version_conflict. */
+                "If-Match"?: components["parameters"]["IfMatchVersion"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiMatchmakingPreferencesUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description AI matchmaking preferences updated. */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["AiMatchmakingPreferencesDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["Conflict"];

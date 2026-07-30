@@ -379,6 +379,41 @@ export default function ProfileScreen() {
           </View>
         </Pressable>
 
+        <Pressable
+          accessibilityHint="Opens your optional AI matchmaking and data controls"
+          accessibilityRole="button"
+          onPress={() => router.push("/ai-matchmaker")}
+          style={({ pressed }) => [
+            styles.aiManager,
+            pressed && styles.pressed,
+          ]}
+        >
+          <View style={styles.photoManagerIcon}>
+            <Ionicons
+              color={palette.brand}
+              name="sparkles-outline"
+              size={24}
+            />
+          </View>
+          <View style={styles.photoManagerCopy}>
+            <Text style={styles.photoManagerTitle}>
+              AI matchmaking controls
+            </Text>
+            <Text style={styles.photoManagerBody}>
+              Choose whether AI may assist your human matchmaker and
+              review exactly what stays private.
+            </Text>
+          </View>
+          <View style={styles.photoManagerAction}>
+            <Text style={styles.photoManagerActionText}>Review</Text>
+            <Ionicons
+              color={palette.brand}
+              name="chevron-forward"
+              size={17}
+            />
+          </View>
+        </Pressable>
+
         {errorMessage ? (
           <View style={styles.warningCard}>
             <Text style={styles.warningText}>{errorMessage}</Text>
@@ -741,6 +776,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: space.sm,
     marginBottom: space.xl,
+    padding: space.md,
+  },
+  aiManager: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderColor: palette.brandSoftStrong,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: space.sm,
+    marginBottom: space.xl,
+    marginTop: -space.sm,
     padding: space.md,
   },
   photoManagerIcon: {
