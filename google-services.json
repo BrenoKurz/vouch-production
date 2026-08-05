@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "704957331012",
+    "project_id": "vouch-production-f2e84",
+    "storage_bucket": "vouch-production-f2e84.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:704957331012:android:d41a0aa1a56c56b9b86e11",
+        "android_client_info": {
+          "package_name": "com.vouchdating.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7O9Ob0mguzue_WtksgHRIH5woYKI683E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
