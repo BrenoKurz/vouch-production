@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/images/vouch-icon.png",
       "bundleIdentifier": "com.vouchdating.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.vouchdating.app",
