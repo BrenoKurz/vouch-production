@@ -21,13 +21,7 @@ import {
   LoadingState,
   PageHeader,
 } from "@/components/vouch-ui";
-import {
-  layout,
-  palette,
-  radius,
-  space,
-  typography,
-} from "@/constants/design";
+import { layout, palette, radius, space, typography } from "@/constants/design";
 import { ApiError, apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/providers/auth-provider";
 import { useNotifications } from "@/providers/notification-provider";
@@ -53,6 +47,8 @@ const icons: Record<
   debrief_ready: "document-text-outline",
   safety_report_received: "shield-checkmark-outline",
   safety_case_updated: "shield-outline",
+  privacy_request_received: "lock-closed-outline",
+  privacy_request_updated: "document-lock-outline",
 };
 
 const uuidPattern =
@@ -64,6 +60,7 @@ const allowedRoutePatterns = [
   new RegExp(`^/date/${uuidPattern}$`),
   new RegExp(`^/debrief/${uuidPattern}$`),
   new RegExp(`^/safety-case/${uuidPattern}$`),
+  /^\/privacy-requests$/,
 ];
 
 function safeHref(route: string): Href | null {
@@ -355,10 +352,7 @@ function NotificationCard({
       ]}
     >
       <View
-        style={[
-          styles.iconContainer,
-          isUnread && styles.unreadIconContainer,
-        ]}
+        style={[styles.iconContainer, isUnread && styles.unreadIconContainer]}
       >
         <Ionicons
           color={isUnread ? palette.brand : palette.muted}
@@ -388,11 +382,7 @@ function NotificationCard({
       {isOpening ? (
         <ActivityIndicator color={palette.brand} size="small" />
       ) : (
-        <Ionicons
-          color={palette.subtle}
-          name="chevron-forward"
-          size={18}
-        />
+        <Ionicons color={palette.subtle} name="chevron-forward" size={18} />
       )}
     </Pressable>
   );

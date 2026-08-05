@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.20.0",
+    "version": "0.22.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -80,6 +80,7 @@
               "account_suspended",
               "account_banned",
               "rate_limited",
+              "provider_unavailable",
               "internal_error",
               "not_implemented"
             ]
@@ -1161,7 +1162,9 @@
               "date_rescheduled",
               "debrief_ready",
               "safety_report_received",
-              "safety_case_updated"
+              "safety_case_updated",
+              "privacy_request_received",
+              "privacy_request_updated"
             ]
           },
           "title": {
@@ -2068,6 +2071,351 @@
           }
         }
       },
+      "VoiceIntakeAnswers": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relationship_goal",
+          "partner_qualities",
+          "dealbreakers",
+          "values",
+          "communication_style",
+          "typical_availability",
+          "location_preferences",
+          "matchmaker_notes"
+        ],
+        "properties": {
+          "relationship_goal": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "partner_qualities": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "dealbreakers": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "values": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "communication_style": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "typical_availability": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "location_preferences": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "matchmaker_notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          }
+        }
+      },
+      "VoiceIntakeReflectionDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "transcript",
+          "suggested_answers",
+          "approved_answers",
+          "raw_audio_deleted",
+          "provider",
+          "transcription_model",
+          "extraction_model",
+          "prompt_version",
+          "failure_reason",
+          "confirmed_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "ready_for_review",
+              "confirmed",
+              "applied",
+              "failed",
+              "discarded"
+            ]
+          },
+          "transcript": {
+            "type": "string",
+            "nullable": true
+          },
+          "suggested_answers": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoiceIntakeAnswers"
+              }
+            ],
+            "nullable": true
+          },
+          "approved_answers": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VoiceIntakeAnswers"
+              }
+            ],
+            "nullable": true
+          },
+          "raw_audio_deleted": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string",
+            "nullable": true
+          },
+          "transcription_model": {
+            "type": "string",
+            "nullable": true
+          },
+          "extraction_model": {
+            "type": "string",
+            "nullable": true
+          },
+          "prompt_version": {
+            "type": "string"
+          },
+          "failure_reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VoiceIntakeStatusEnvelope": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provider_available",
+              "reflection"
+            ],
+            "properties": {
+              "provider_available": {
+                "type": "boolean"
+              },
+              "reflection": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/VoiceIntakeReflectionDto"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiEnvelopeMeta"
+          }
+        }
+      },
+      "VoiceIntakeReflectionEnvelope": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VoiceIntakeReflectionDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiEnvelopeMeta"
+          }
+        }
+      },
+      "ProcessVoiceIntakeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upload_id"
+        ],
+        "properties": {
+          "upload_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ConfirmVoiceIntakeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "answers"
+        ],
+        "properties": {
+          "answers": {
+            "$ref": "#/components/schemas/VoiceIntakeAnswers"
+          }
+        }
+      },
+      "PrivacyRequestDto": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "request_type",
+          "status",
+          "member_message",
+          "target_response_at",
+          "submitted_at",
+          "updated_at",
+          "resolved_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "data_access",
+              "account_deletion"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "submitted",
+              "in_progress",
+              "action_required",
+              "completed",
+              "cancelled",
+              "declined"
+            ]
+          },
+          "member_message": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000
+          },
+          "target_response_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolved_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PrivacyRequestsEnvelope": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrivacyRequestDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiEnvelopeMeta"
+          }
+        }
+      },
+      "PrivacyRequestEnvelope": {
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PrivacyRequestDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ApiEnvelopeMeta"
+          }
+        }
+      },
+      "SubmitPrivacyRequestBody": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_type"
+        ],
+        "properties": {
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "data_access",
+              "account_deletion"
+            ]
+          }
+        }
+      },
       "StartMemberIntakeRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -2234,6 +2582,16 @@
       },
       "ValidationFailed": {
         "description": "Validation failed."
+      },
+      "TooManyRequests": {
+        "description": "Rate limit reached.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
       }
     }
   },
@@ -4418,6 +4776,136 @@
         }
       }
     },
+    "/members/me/privacy-requests": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "List the authenticated member's privacy requests",
+        "operationId": "listMyPrivacyRequests",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privacy request history.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestsEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Submit an authenticated privacy request",
+        "description": "Creates a tracked data-access or account-deletion request. Submission does not immediately delete the account; staff review retention and identity requirements before completion.",
+        "operationId": "submitMyPrivacyRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitPrivacyRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Privacy request submitted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/members/me/privacy-requests/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Cancel an active privacy request",
+        "operationId": "cancelMyPrivacyRequest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privacy request cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivacyRequestEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
     "/members/me/membership": {
       "post": {
         "tags": [
@@ -4647,6 +5135,217 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/members/me/intake/voice": {
+      "get": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Get voice-intake availability and the latest private reflection",
+        "operationId": "getMyVoiceIntake",
+        "responses": {
+          "200": {
+            "description": "Voice-intake availability and latest reflection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceIntakeStatusEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Privately transcribe a voice reflection and create editable suggestions",
+        "description": "Requires a completed private `intake_voice` upload and an in-progress intake. Processing uses the configured AI provider with provider-side storage disabled. Raw audio is deleted immediately after transcription. Suggestions cannot affect matchmaking until the member reviews and confirms them.",
+        "operationId": "processMyVoiceIntake",
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessVoiceIntakeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transcript and editable suggestions are ready for member review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "description": "Daily voice-reflection limit reached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "AI voice processing is unavailable; text intake remains available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/members/me/intake/voice/{reflection_id}/confirm": {
+      "post": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Confirm member-reviewed voice-intake suggestions",
+        "description": "Stores only the member-approved facts and deletes the transcript. Confirmed facts are offered as editable questionnaire answers and are cleared from the temporary voice record after intake submission.",
+        "operationId": "confirmMyVoiceIntake",
+        "parameters": [
+          {
+            "name": "reflection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmVoiceIntakeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member-approved facts saved and transcript deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      }
+    },
+    "/members/me/intake/voice/{reflection_id}": {
+      "delete": {
+        "tags": [
+          "Members"
+        ],
+        "summary": "Discard a private voice reflection and its temporary data",
+        "operationId": "discardMyVoiceIntake",
+        "parameters": [
+          {
+            "name": "reflection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reflection, transcript, and any remaining audio discarded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
           }
         }
       }

@@ -1721,6 +1721,44 @@ export interface paths {
         patch: operations["updateMyAiMatchmakingPreferences"];
         trace?: never;
     };
+    "/members/me/privacy-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the authenticated member's privacy requests */
+        get: operations["listMyPrivacyRequests"];
+        put?: never;
+        /**
+         * Submit an authenticated privacy request
+         * @description Creates a tracked data-access or account-deletion request. Submission does not immediately delete the account; staff review retention and identity requirements before completion.
+         */
+        post: operations["submitMyPrivacyRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/privacy-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an active privacy request */
+        post: operations["cancelMyPrivacyRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/members/me/membership": {
         parameters: {
             query?: never;
@@ -1768,6 +1806,64 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get voice-intake availability and the latest private reflection */
+        get: operations["getMyVoiceIntake"];
+        put?: never;
+        /**
+         * Privately transcribe a voice reflection and create editable suggestions
+         * @description Requires a completed private `intake_voice` upload and an in-progress intake. Processing uses the configured AI provider with provider-side storage disabled. Raw audio is deleted immediately after transcription. Suggestions cannot affect matchmaking until the member reviews and confirms them.
+         */
+        post: operations["processMyVoiceIntake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/voice/{reflection_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm member-reviewed voice-intake suggestions
+         * @description Stores only the member-approved facts and deletes the transcript. Confirmed facts are offered as editable questionnaire answers and are cleared from the temporary voice record after intake submission.
+         */
+        post: operations["confirmMyVoiceIntake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/intake/voice/{reflection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Discard a private voice reflection and its temporary data */
+        delete: operations["discardMyVoiceIntake"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1870,7 +1966,7 @@ export interface components {
         };
         ApiError: {
             /** @enum {string} */
-            code: "authentication_required" | "forbidden" | "not_found" | "validation_failed" | "state_conflict" | "version_conflict" | "idempotency_conflict" | "activation_gate_failed" | "introduction_resolved" | "introduction_cap_reached" | "response_deadline_passed" | "conversation_closed" | "message_rejected" | "date_slot_unavailable" | "venue_unavailable" | "debrief_already_submitted" | "verification_pending" | "verification_rejected" | "membership_inactive" | "account_paused" | "account_suspended" | "account_banned" | "rate_limited" | "internal_error" | "not_implemented";
+            code: "authentication_required" | "forbidden" | "not_found" | "validation_failed" | "state_conflict" | "version_conflict" | "idempotency_conflict" | "activation_gate_failed" | "introduction_resolved" | "introduction_cap_reached" | "response_deadline_passed" | "conversation_closed" | "message_rejected" | "date_slot_unavailable" | "venue_unavailable" | "debrief_already_submitted" | "verification_pending" | "verification_rejected" | "membership_inactive" | "account_paused" | "account_suspended" | "account_banned" | "rate_limited" | "provider_unavailable" | "internal_error" | "not_implemented";
             message: string;
             retryable: boolean;
             request_id: string;
@@ -2139,7 +2235,7 @@ export interface components {
         MemberNotificationDto: {
             id: string;
             /** @enum {string} */
-            notification_type: "new_introduction" | "mutual_match" | "new_message" | "date_proposed" | "date_confirmed" | "date_cancelled" | "date_rescheduled" | "debrief_ready" | "safety_report_received" | "safety_case_updated";
+            notification_type: "new_introduction" | "mutual_match" | "new_message" | "date_proposed" | "date_confirmed" | "date_cancelled" | "date_rescheduled" | "debrief_ready" | "safety_report_received" | "safety_case_updated" | "privacy_request_received" | "privacy_request_updated";
             title: string;
             body: string;
             route: string;
@@ -2358,6 +2454,84 @@ export interface components {
             location_preferences: string;
             matchmaker_notes: string;
         };
+        VoiceIntakeAnswers: {
+            relationship_goal: string | null;
+            partner_qualities: string[];
+            dealbreakers: string[];
+            values: string[];
+            communication_style: string | null;
+            typical_availability: string | null;
+            location_preferences: string | null;
+            matchmaker_notes: string | null;
+        };
+        VoiceIntakeReflectionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "processing" | "ready_for_review" | "confirmed" | "applied" | "failed" | "discarded";
+            transcript: string | null;
+            suggested_answers: components["schemas"]["VoiceIntakeAnswers"] | null;
+            approved_answers: components["schemas"]["VoiceIntakeAnswers"] | null;
+            raw_audio_deleted: boolean;
+            provider: string | null;
+            transcription_model: string | null;
+            extraction_model: string | null;
+            prompt_version: string;
+            failure_reason: string | null;
+            /** Format: date-time */
+            confirmed_at: string | null;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        VoiceIntakeStatusEnvelope: {
+            data: {
+                provider_available: boolean;
+                reflection: components["schemas"]["VoiceIntakeReflectionDto"] | null;
+            };
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
+        VoiceIntakeReflectionEnvelope: {
+            data: components["schemas"]["VoiceIntakeReflectionDto"];
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
+        ProcessVoiceIntakeRequest: {
+            /** Format: uuid */
+            upload_id: string;
+        };
+        ConfirmVoiceIntakeRequest: {
+            answers: components["schemas"]["VoiceIntakeAnswers"];
+        };
+        PrivacyRequestDto: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            request_type: "data_access" | "account_deletion";
+            /** @enum {string} */
+            status: "submitted" | "in_progress" | "action_required" | "completed" | "cancelled" | "declined";
+            member_message: string | null;
+            /** Format: date-time */
+            target_response_at: string;
+            /** Format: date-time */
+            submitted_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: date-time */
+            resolved_at: string | null;
+        };
+        PrivacyRequestsEnvelope: {
+            data: components["schemas"]["PrivacyRequestDto"][];
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
+        PrivacyRequestEnvelope: {
+            data: components["schemas"]["PrivacyRequestDto"];
+            meta: components["schemas"]["ApiEnvelopeMeta"];
+        };
+        SubmitPrivacyRequestBody: {
+            /** @enum {string} */
+            request_type: "data_access" | "account_deletion";
+        };
         StartMemberIntakeRequest: {
             /** @enum {string} */
             modality: "text";
@@ -2438,6 +2612,15 @@ export interface components {
                 [name: string]: unknown;
             };
             content?: never;
+        };
+        /** @description Rate limit reached. */
+        TooManyRequests: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
         };
     };
     parameters: {
@@ -2580,6 +2763,86 @@ export interface operations {
             422: components["responses"]["Conflict"];
         };
     };
+    listMyPrivacyRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Privacy request history. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestsEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    submitMyPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitPrivacyRequestBody"];
+            };
+        };
+        responses: {
+            /** @description Privacy request submitted. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["TooManyRequests"];
+        };
+    };
+    cancelMyPrivacyRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Privacy request cancelled. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrivacyRequestEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     changeMyMembership: {
         parameters: {
             query?: never;
@@ -2695,6 +2958,135 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    getMyVoiceIntake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Voice-intake availability and latest reflection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceIntakeStatusEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    processMyVoiceIntake: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessVoiceIntakeRequest"];
+            };
+        };
+        responses: {
+            /** @description Transcript and editable suggestions are ready for member review */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceIntakeReflectionEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            /** @description Daily voice-reflection limit reached */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description AI voice processing is unavailable; text intake remains available */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirmMyVoiceIntake: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Idempotency-Key"?: string;
+            };
+            path: {
+                reflection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmVoiceIntakeRequest"];
+            };
+        };
+        responses: {
+            /** @description Member-approved facts saved and transcript deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceIntakeReflectionEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    discardMyVoiceIntake: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Idempotency-Key"?: string;
+            };
+            path: {
+                reflection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reflection, transcript, and any remaining audio discarded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceIntakeReflectionEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     startMyIntake: {

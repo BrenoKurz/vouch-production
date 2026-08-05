@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
-import { useFocusEffect, useRouter } from "expo-router";
+import { type Href, useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -32,6 +32,10 @@ import type {
   SubmitIntakeEnvelope,
   SubmitIntakeRequest,
 } from "@/types/intake";
+import type {
+  VoiceIntakeAnswers,
+  VoiceIntakeStatusEnvelope,
+} from "@/types/voice-intake";
 
 type IntakeDraft = {
   relationship_goal: string;
@@ -70,6 +74,39 @@ function draftFromDossier(dossier: IntakeDossier | null): IntakeDraft {
     typical_availability: dossier.typical_availability,
     location_preferences: dossier.location_preferences,
     matchmaker_notes: dossier.member_visible_summary,
+  };
+}
+
+function mergeVoiceAnswers(
+  draft: IntakeDraft,
+  answers: VoiceIntakeAnswers,
+): IntakeDraft {
+  const fill = (current: string, suggestion: string | null) =>
+    current.trim() ? current : (suggestion ?? "");
+  const fillList = (current: string, suggestions: string[]) =>
+    current.trim() ? current : suggestions.join(", ");
+
+  return {
+    relationship_goal: fill(draft.relationship_goal, answers.relationship_goal),
+    partner_qualities: fillList(
+      draft.partner_qualities,
+      answers.partner_qualities,
+    ),
+    dealbreakers: fillList(draft.dealbreakers, answers.dealbreakers),
+    values: fillList(draft.values, answers.values),
+    communication_style: fill(
+      draft.communication_style,
+      answers.communication_style,
+    ),
+    typical_availability: fill(
+      draft.typical_availability,
+      answers.typical_availability,
+    ),
+    location_preferences: fill(
+      draft.location_preferences,
+      answers.location_preferences,
+    ),
+    matchmaker_notes: fill(draft.matchmaker_notes, answers.matchmaker_notes),
   };
 }
 
@@ -216,6 +253,10 @@ export default function IntakeScreen() {
   const [isApproving, setIsApproving] = useState(false);
   const [dossierAccurate, setDossierAccurate] = useState(false);
   const [processingConsented, setProcessingConsented] = useState(false);
+  const [voiceProviderAvailable, setVoiceProviderAvailable] = useState<
+    boolean | null
+  >(null);
+  const [voiceAnswersReady, setVoiceAnswersReady] = useState(false);
 
   const loadIntake = useCallback(async () => {
     if (!accessToken) {
@@ -228,12 +269,26 @@ export default function IntakeScreen() {
     setErrorMessage(null);
 
     try {
-      const response = await apiGet<IntakeEnvelope>(
-        "/members/me/intake",
-        accessToken,
-      );
+      const [response, voiceResponse] = await Promise.all([
+        apiGet<IntakeEnvelope>("/members/me/intake", accessToken),
+        apiGet<VoiceIntakeStatusEnvelope>(
+          "/members/me/intake/voice",
+          accessToken,
+        ).catch(() => null),
+      ]);
 
       setIntake(response.data);
+      setVoiceProviderAvailable(voiceResponse?.data.provider_available ?? null);
+
+      const voiceReflection = voiceResponse?.data.reflection;
+      const approvedAnswers = voiceReflection?.approved_answers;
+      const hasConfirmedVoiceAnswers =
+        voiceReflection?.status === "confirmed" && Boolean(approvedAnswers);
+      setVoiceAnswersReady(hasConfirmedVoiceAnswers);
+
+      if (response.data.intake_state === "in_progress" && approvedAnswers) {
+        setDraft((current) => mergeVoiceAnswers(current, approvedAnswers));
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -494,285 +549,318 @@ export default function IntakeScreen() {
         : "";
 
   return (
-      <AppScreen includeBottomInset>
-        <StackHeader title="Matchmaking intake" />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.flex}
+    <AppScreen includeBottomInset>
+      <StackHeader title="Matchmaking intake" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.flex}
+      >
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.eyebrow}>YOUR MATCHMAKER</Text>
-            <Text style={styles.title}>Tell us what matters</Text>
-            <Text style={styles.subtitle}>
-              Your answers create a private working dossier for Vouch
-              matchmakers. They are not shown verbatim to potential matches.
-            </Text>
+          <Text style={styles.eyebrow}>YOUR MATCHMAKER</Text>
+          <Text style={styles.title}>Tell us what matters</Text>
+          <Text style={styles.subtitle}>
+            Your answers create a private working dossier for Vouch matchmakers.
+            They are not shown verbatim to potential matches.
+          </Text>
 
-            {isLoading && !intake ? (
-              <View style={styles.centeredCard}>
-                <ActivityIndicator color="#352D28" />
-                <Text style={styles.loadingText}>Loading your intake…</Text>
-              </View>
-            ) : null}
+          {isLoading && !intake ? (
+            <View style={styles.centeredCard}>
+              <ActivityIndicator color="#352D28" />
+              <Text style={styles.loadingText}>Loading your intake…</Text>
+            </View>
+          ) : null}
 
-            {errorMessage ? (
-              <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{errorMessage}</Text>
-              </View>
-            ) : null}
+          {errorMessage ? (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
 
-            {!isLoading && !intake ? (
-              <Pressable
-                onPress={() => void loadIntake()}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.primaryButtonText}>Try again</Text>
-              </Pressable>
-            ) : null}
+          {!isLoading && !intake ? (
+            <Pressable
+              onPress={() => void loadIntake()}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.primaryButtonText}>Try again</Text>
+            </Pressable>
+          ) : null}
 
-            {intake ? (
-              <>
-                <View style={styles.statusCard}>
-                  <View>
-                    <Text style={styles.cardLabel}>CURRENT STATUS</Text>
-                    <Text style={styles.statusTitle}>{currentStatusLabel}</Text>
-                  </View>
-
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      intake.activation.state === "active" ||
-                      intake.intake_state === "completed"
-                        ? styles.statusPositive
-                        : intake.intake_state === "in_progress"
-                          ? styles.statusPending
-                          : styles.statusNeutral,
-                    ]}
-                  >
-                    <Text style={styles.statusBadgeText}>
-                      {currentStatusLabel}
-                    </Text>
-                  </View>
+          {intake ? (
+            <>
+              <View style={styles.statusCard}>
+                <View>
+                  <Text style={styles.cardLabel}>CURRENT STATUS</Text>
+                  <Text style={styles.statusTitle}>{currentStatusLabel}</Text>
                 </View>
 
-                {intake.intake_state === "not_started" && !intake.can_start ? (
-                  <View style={styles.lockedCard}>
-                    <Text style={styles.lockedTitle}>
-                      Verification comes first
-                    </Text>
-                    <Text style={styles.lockedText}>
-                      Once identity verification is complete, your matchmaking
-                      questionnaire will unlock here.
-                    </Text>
-
-                    <Pressable
-                      onPress={() => router.push("/verification")}
-                      style={({ pressed }) => [
-                        styles.secondaryButton,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <Text style={styles.secondaryButtonText}>
-                        View verification
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-
-                {intake.can_start ? (
-                  <View style={styles.startCard}>
-                    <Text style={styles.startTitle}>
-                      {intake.intake_state === "completed"
-                        ? "Keep your matchmaking facts current"
-                        : "About 10 thoughtful minutes"}
-                    </Text>
-                    <Text style={styles.startText}>
-                      {intake.intake_state === "completed"
-                        ? "Review every fact Vouch uses, correct what changed, and approve the revised dossier before new matching resumes. Existing connections stay available."
-                        : "You’ll cover relationship goals, values, communication, logistics, and what your matchmaker should understand about you."}
-                    </Text>
-
-                    <Pressable
-                      disabled={isStarting}
-                      onPress={() => void handleStart()}
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        isStarting && styles.disabled,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      {isStarting ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.primaryButtonText}>
-                          {intake.intake_state === "completed"
-                            ? "Review and update"
-                            : "Begin questionnaire"}
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                ) : null}
-
-                {intake.intake_state === "in_progress" ? (
-                  <View style={styles.formCard}>
-                    <Text style={styles.formTitle}>
-                      Your matchmaking questionnaire
-                    </Text>
-                    <Text style={styles.formIntro}>
-                      Be candid and specific. You’ll review the submitted
-                      answers before they become part of active matchmaking.
-                    </Text>
-
-                    <QuestionField
-                      error={fieldErrors.relationship_goal}
-                      help="Describe the kind of relationship and shared life you want."
-                      label="What are you looking to build?"
-                      maxLength={500}
-                      onChangeText={(value) =>
-                        updateDraft("relationship_goal", value)
-                      }
-                      value={draft.relationship_goal}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.partner_qualities}
-                      help="Separate up to 8 qualities with commas."
-                      label="Qualities you value in a partner"
-                      maxLength={700}
-                      onChangeText={(value) =>
-                        updateDraft("partner_qualities", value)
-                      }
-                      value={draft.partner_qualities}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.dealbreakers}
-                      help="Optional. Separate up to 8 dealbreakers with commas."
-                      label="True dealbreakers"
-                      maxLength={700}
-                      onChangeText={(value) =>
-                        updateDraft("dealbreakers", value)
-                      }
-                      value={draft.dealbreakers}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.values}
-                      help="Separate up to 8 core values with commas."
-                      label="Values that shape your life"
-                      maxLength={700}
-                      onChangeText={(value) => updateDraft("values", value)}
-                      value={draft.values}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.communication_style}
-                      help="Share how you connect, repair conflict, and feel understood."
-                      label="Your communication style"
-                      maxLength={500}
-                      onChangeText={(value) =>
-                        updateDraft("communication_style", value)
-                      }
-                      value={draft.communication_style}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.typical_availability}
-                      help="Include realistic weeknight, weekend, travel, or parenting constraints."
-                      label="Typical availability"
-                      maxLength={500}
-                      onChangeText={(value) =>
-                        updateDraft("typical_availability", value)
-                      }
-                      value={draft.typical_availability}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.location_preferences}
-                      help="Tell us where you can comfortably date and travel."
-                      label="Location preferences"
-                      maxLength={500}
-                      onChangeText={(value) =>
-                        updateDraft("location_preferences", value)
-                      }
-                      value={draft.location_preferences}
-                    />
-
-                    <QuestionField
-                      error={fieldErrors.matchmaker_notes}
-                      help="Add context, nuance, or patterns a thoughtful matchmaker should know."
-                      label="What else should your matchmaker understand?"
-                      maxLength={2000}
-                      onChangeText={(value) =>
-                        updateDraft("matchmaker_notes", value)
-                      }
-                      value={draft.matchmaker_notes}
-                    />
-
-                    {fieldErrors.answers ? (
-                      <Text style={styles.fieldError}>
-                        {fieldErrors.answers}
-                      </Text>
-                    ) : null}
-
-                    <Pressable
-                      disabled={isSubmitting}
-                      onPress={() => void handleSubmit()}
-                      style={({ pressed }) => [
-                        styles.primaryButton,
-                        isSubmitting && styles.disabled,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      {isSubmitting ? (
-                        <ActivityIndicator color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.primaryButtonText}>
-                          Submit to your matchmaker
-                        </Text>
-                      )}
-                    </Pressable>
-                  </View>
-                ) : null}
-
-                {intake.intake_state === "completed" && intake.dossier ? (
-                  <>
-                    <CompletedIntake dossier={intake.dossier} />
-                    <ActivationCard
-                      dossierAccurate={dossierAccurate}
-                      intake={intake}
-                      isApproving={isApproving}
-                      isUploadingPhoto={isUploadingPhoto}
-                      onApprove={() => void handleApproveDossier()}
-                      onChoosePhoto={() => void handleChoosePhoto()}
-                      onDossierAccurateChange={setDossierAccurate}
-                      onProcessingConsentedChange={setProcessingConsented}
-                      processingConsented={processingConsented}
-                    />
-                  </>
-                ) : null}
-
-                <View style={styles.privacyCard}>
-                  <Text style={styles.privacyTitle}>Private by default</Text>
-                  <Text style={styles.privacyText}>
-                    This dossier is for Vouch matchmaking work. Other members
-                    only see profile details and introduction context approved
-                    for sharing.
+                <View
+                  style={[
+                    styles.statusBadge,
+                    intake.activation.state === "active" ||
+                    intake.intake_state === "completed"
+                      ? styles.statusPositive
+                      : intake.intake_state === "in_progress"
+                        ? styles.statusPending
+                        : styles.statusNeutral,
+                  ]}
+                >
+                  <Text style={styles.statusBadgeText}>
+                    {currentStatusLabel}
                   </Text>
                 </View>
-              </>
-            ) : null}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </AppScreen>
+              </View>
+
+              {intake.intake_state === "not_started" && !intake.can_start ? (
+                <View style={styles.lockedCard}>
+                  <Text style={styles.lockedTitle}>
+                    Verification comes first
+                  </Text>
+                  <Text style={styles.lockedText}>
+                    Once identity verification is complete, your matchmaking
+                    questionnaire will unlock here.
+                  </Text>
+
+                  <Pressable
+                    onPress={() => router.push("/verification")}
+                    style={({ pressed }) => [
+                      styles.secondaryButton,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.secondaryButtonText}>
+                      View verification
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {intake.can_start ? (
+                <View style={styles.startCard}>
+                  <Text style={styles.startTitle}>
+                    {intake.intake_state === "completed"
+                      ? "Keep your matchmaking facts current"
+                      : "About 10 thoughtful minutes"}
+                  </Text>
+                  <Text style={styles.startText}>
+                    {intake.intake_state === "completed"
+                      ? "Review every fact Vouch uses, correct what changed, and approve the revised dossier before new matching resumes. Existing connections stay available."
+                      : "You’ll cover relationship goals, values, communication, logistics, and what your matchmaker should understand about you."}
+                  </Text>
+
+                  <Pressable
+                    disabled={isStarting}
+                    onPress={() => void handleStart()}
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      isStarting && styles.disabled,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {isStarting ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>
+                        {intake.intake_state === "completed"
+                          ? "Review and update"
+                          : "Begin questionnaire"}
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {intake.intake_state === "in_progress" ? (
+                <View style={styles.formCard}>
+                  <Text style={styles.formTitle}>
+                    Your matchmaking questionnaire
+                  </Text>
+                  <Text style={styles.formIntro}>
+                    Be candid and specific. You’ll review the submitted answers
+                    before they become part of active matchmaking.
+                  </Text>
+
+                  <View style={styles.voiceCard}>
+                    <View style={styles.voiceCopy}>
+                      <Text style={styles.voiceEyebrow}>
+                        OPTIONAL · VOUCH VOICE
+                      </Text>
+                      <Text style={styles.voiceTitle}>
+                        {voiceAnswersReady
+                          ? "Your reviewed voice answers are included"
+                          : "Prefer to talk it through?"}
+                      </Text>
+                      <Text style={styles.voiceText}>
+                        {voiceAnswersReady
+                          ? "We filled only blank fields below. You still control every word before submitting."
+                          : voiceProviderAvailable === false
+                            ? "Voice assistance is not connected right now. You can complete every field below by text."
+                            : "Record a private reflection, then review and edit every AI suggestion before it appears here."}
+                      </Text>
+                    </View>
+                    <Pressable
+                      accessibilityHint="Opens optional private voice-assisted intake"
+                      accessibilityRole="button"
+                      disabled={voiceProviderAvailable === false}
+                      onPress={() => router.push("/voice-intake" as Href)}
+                      style={({ pressed }) => [
+                        styles.voiceButton,
+                        voiceProviderAvailable === false && styles.disabled,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={styles.voiceButtonText}>
+                        {voiceAnswersReady
+                          ? "Review a new reflection"
+                          : "Reflect by voice"}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  <QuestionField
+                    error={fieldErrors.relationship_goal}
+                    help="Describe the kind of relationship and shared life you want."
+                    label="What are you looking to build?"
+                    maxLength={500}
+                    onChangeText={(value) =>
+                      updateDraft("relationship_goal", value)
+                    }
+                    value={draft.relationship_goal}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.partner_qualities}
+                    help="Separate up to 8 qualities with commas."
+                    label="Qualities you value in a partner"
+                    maxLength={700}
+                    onChangeText={(value) =>
+                      updateDraft("partner_qualities", value)
+                    }
+                    value={draft.partner_qualities}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.dealbreakers}
+                    help="Optional. Separate up to 8 dealbreakers with commas."
+                    label="True dealbreakers"
+                    maxLength={700}
+                    onChangeText={(value) => updateDraft("dealbreakers", value)}
+                    value={draft.dealbreakers}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.values}
+                    help="Separate up to 8 core values with commas."
+                    label="Values that shape your life"
+                    maxLength={700}
+                    onChangeText={(value) => updateDraft("values", value)}
+                    value={draft.values}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.communication_style}
+                    help="Share how you connect, repair conflict, and feel understood."
+                    label="Your communication style"
+                    maxLength={500}
+                    onChangeText={(value) =>
+                      updateDraft("communication_style", value)
+                    }
+                    value={draft.communication_style}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.typical_availability}
+                    help="Include realistic weeknight, weekend, travel, or parenting constraints."
+                    label="Typical availability"
+                    maxLength={500}
+                    onChangeText={(value) =>
+                      updateDraft("typical_availability", value)
+                    }
+                    value={draft.typical_availability}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.location_preferences}
+                    help="Tell us where you can comfortably date and travel."
+                    label="Location preferences"
+                    maxLength={500}
+                    onChangeText={(value) =>
+                      updateDraft("location_preferences", value)
+                    }
+                    value={draft.location_preferences}
+                  />
+
+                  <QuestionField
+                    error={fieldErrors.matchmaker_notes}
+                    help="Add context, nuance, or patterns a thoughtful matchmaker should know."
+                    label="What else should your matchmaker understand?"
+                    maxLength={2000}
+                    onChangeText={(value) =>
+                      updateDraft("matchmaker_notes", value)
+                    }
+                    value={draft.matchmaker_notes}
+                  />
+
+                  {fieldErrors.answers ? (
+                    <Text style={styles.fieldError}>{fieldErrors.answers}</Text>
+                  ) : null}
+
+                  <Pressable
+                    disabled={isSubmitting}
+                    onPress={() => void handleSubmit()}
+                    style={({ pressed }) => [
+                      styles.primaryButton,
+                      isSubmitting && styles.disabled,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.primaryButtonText}>
+                        Submit to your matchmaker
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {intake.intake_state === "completed" && intake.dossier ? (
+                <>
+                  <CompletedIntake dossier={intake.dossier} />
+                  <ActivationCard
+                    dossierAccurate={dossierAccurate}
+                    intake={intake}
+                    isApproving={isApproving}
+                    isUploadingPhoto={isUploadingPhoto}
+                    onApprove={() => void handleApproveDossier()}
+                    onChoosePhoto={() => void handleChoosePhoto()}
+                    onDossierAccurateChange={setDossierAccurate}
+                    onProcessingConsentedChange={setProcessingConsented}
+                    processingConsented={processingConsented}
+                  />
+                </>
+              ) : null}
+
+              <View style={styles.privacyCard}>
+                <Text style={styles.privacyTitle}>Private by default</Text>
+                <Text style={styles.privacyText}>
+                  This dossier is for Vouch matchmaking work. Other members only
+                  see profile details and introduction context approved for
+                  sharing.
+                </Text>
+              </View>
+            </>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppScreen>
   );
 }
 
@@ -1256,6 +1344,50 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: 22,
     marginTop: 8,
+  },
+  voiceCard: {
+    backgroundColor: "#F2E4DE",
+    borderColor: "#E8D0C7",
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 22,
+    padding: 16,
+  },
+  voiceCopy: {
+    marginBottom: 14,
+  },
+  voiceEyebrow: {
+    color: "#713F36",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+  },
+  voiceTitle: {
+    color: "#292421",
+    fontSize: 17,
+    fontWeight: "700",
+    marginTop: 5,
+  },
+  voiceText: {
+    color: "#625A54",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+  voiceButton: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#CDAEA3",
+    borderRadius: 9,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: 16,
+  },
+  voiceButtonText: {
+    color: "#713F36",
+    fontSize: 14,
+    fontWeight: "800",
   },
   field: {
     marginBottom: 20,

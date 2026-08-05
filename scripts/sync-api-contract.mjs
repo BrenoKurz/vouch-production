@@ -1,19 +1,14 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
 const target = resolve(root, "contracts/openapi.json");
-const expectedVersion = "0.20.0";
+const expectedVersion = "0.22.0";
 const defaultLocalSource = resolve(
   root,
   "..",
@@ -30,9 +25,7 @@ async function readSource() {
     if (/^https?:\/\//.test(configured)) {
       const response = await fetch(configured);
       if (!response.ok) {
-        throw new Error(
-          `Unable to fetch contract (${response.status}).`,
-        );
+        throw new Error(`Unable to fetch contract (${response.status}).`);
       }
       return await response.text();
     }
@@ -46,9 +39,7 @@ async function readSource() {
 
   const response = await fetch(liveSource);
   if (!response.ok) {
-    throw new Error(
-      `Unable to fetch live contract (${response.status}).`,
-    );
+    throw new Error(`Unable to fetch live contract (${response.status}).`);
   }
   return await response.text();
 }
@@ -67,9 +58,7 @@ const normalized = `${JSON.stringify(parsed, null, 2)}\n`;
 mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, normalized);
 
-const sha = createHash("sha256")
-  .update(normalized)
-  .digest("hex");
+const sha = createHash("sha256").update(normalized).digest("hex");
 
 console.log(`Synced contract ${version}`);
 console.log(`SHA256 ${sha}`);
