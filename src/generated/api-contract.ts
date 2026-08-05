@@ -1679,6 +1679,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/me/push-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get native push registration status for the authenticated member */
+        get: operations["getMyPushSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members/me/push-devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register or refresh an Expo push token after explicit member opt-in */
+        post: operations["registerMyPushDevice"];
+        /** Disable every native push device for the authenticated member */
+        delete: operations["disableMyPushDevices"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/members/me/profile": {
         parameters: {
             query?: never;
@@ -2255,6 +2290,17 @@ export interface components {
         MarkAllNotificationsReadDto: {
             updated_count: number;
         };
+        PushSettingsDto: {
+            enabled: boolean;
+            registered_device_count: number;
+            /** Format: date-time */
+            last_registered_at: string | null;
+        };
+        RegisterPushDeviceRequest: {
+            expo_push_token: string;
+            /** @enum {string} */
+            platform: "ios" | "android";
+        };
         /** @enum {string} */
         ConversationState: "open" | "closed_scheduled" | "closed_passed" | "closed_expired";
         /** @enum {string} */
@@ -2635,6 +2681,92 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getMyPushSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PushSettingsDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    registerMyPushDevice: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterPushDeviceRequest"];
+            };
+        };
+        responses: {
+            /** @description Registered */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PushSettingsDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    disableMyPushDevices: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied idempotency key for state-changing requests. Same key + same request returns the original status and body; same key + different request returns 409 idempotency_conflict. */
+                "X-Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PushSettingsDto"];
+                        meta: components["schemas"]["ApiEnvelopeMeta"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     getMyMemberProfile: {
         parameters: {
             query?: never;

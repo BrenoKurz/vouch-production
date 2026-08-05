@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import { disablePushNotifications } from '@/lib/push-notifications';
 
 type AuthContextValue = {
   session: Session | null;
@@ -118,6 +119,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (error) throw error;
       },
       signOut: async () => {
+        if (session?.access_token) {
+          try {
+            await disablePushNotifications(session.access_token);
+          } catch (error) {
+            console.warn(
+              'Unable to disable this device before sign-out:',
+              error instanceof Error ? error.message : error,
+            );
+          }
+        }
         const { error } = await supabase.auth.signOut();
         if (error) throw error;
       },

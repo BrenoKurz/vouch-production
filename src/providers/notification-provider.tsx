@@ -1,7 +1,10 @@
 import {
   AppState,
+  Platform,
   type AppStateStatus,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import {
   createContext,
   type PropsWithChildren,
@@ -14,6 +17,7 @@ import {
 } from 'react';
 
 import { ApiError, apiGet } from '@/lib/api';
+import { registerForPushNotifications } from '@/lib/push-notifications';
 import { useAuth } from '@/providers/auth-provider';
 import type { NotificationUnreadCountEnvelope } from '@/types/notification';
 
@@ -28,6 +32,17 @@ type NotificationContextValue = {
 const NotificationContext =
   createContext<NotificationContextValue | null>(null);
 
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
+
 export function NotificationProvider({
   children,
 }: PropsWithChildren) {
@@ -36,6 +51,23 @@ export function NotificationProvider({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const appState = useRef<AppStateStatus>(AppState.currentState);
+  const pushEnabled =
+    session?.user.user_metadata?.vouch_communication_preferences?.push === true;
+
+  const refreshPushRegistration = useCallback(async () => {
+    if (!accessToken || !pushEnabled) return;
+
+    try {
+      await registerForPushNotifications(accessToken, {
+        requestPermission: false,
+      });
+    } catch (error) {
+      console.warn(
+        'Unable to refresh native push registration:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }, [accessToken, pushEnabled]);
 
   const refreshUnreadCount = useCallback(async () => {
     if (!accessToken) {
@@ -85,6 +117,22 @@ export function NotificationProvider({
   }, [refreshUnreadCount]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const responseSubscription =
+      Notifications.addNotificationResponseReceivedListener(() => {
+        router.push('/(tabs)/notifications');
+        void refreshUnreadCount();
+      });
+
+    return () => responseSubscription.remove();
+  }, [refreshUnreadCount]);
+
+  useEffect(() => {
+    void refreshPushRegistration();
+  }, [refreshPushRegistration]);
+
+  useEffect(() => {
     const subscription = AppState.addEventListener(
       'change',
       (nextState) => {
@@ -96,12 +144,13 @@ export function NotificationProvider({
 
         if (wasInactive && nextState === 'active') {
           void refreshUnreadCount();
+          void refreshPushRegistration();
         }
       },
     );
 
     return () => subscription.remove();
-  }, [refreshUnreadCount]);
+  }, [refreshPushRegistration, refreshUnreadCount]);
 
   const value = useMemo<NotificationContextValue>(
     () => ({

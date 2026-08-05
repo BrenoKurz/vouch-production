@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.22.0",
+    "version": "0.23.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -28,11 +28,7 @@
     "schemas": {
       "ApiEnvelopeMeta": {
         "type": "object",
-        "required": [
-          "request_id",
-          "version",
-          "contract_version"
-        ],
+        "required": ["request_id", "version", "contract_version"],
         "properties": {
           "request_id": {
             "type": "string"
@@ -47,12 +43,7 @@
       },
       "ApiError": {
         "type": "object",
-        "required": [
-          "code",
-          "message",
-          "retryable",
-          "request_id"
-        ],
+        "required": ["code", "message", "retryable", "request_id"],
         "properties": {
           "code": {
             "type": "string",
@@ -107,10 +98,7 @@
       },
       "ErrorEnvelope": {
         "type": "object",
-        "required": [
-          "error",
-          "meta"
-        ],
+        "required": ["error", "meta"],
         "properties": {
           "error": {
             "$ref": "#/components/schemas/ApiError"
@@ -140,23 +128,11 @@
       },
       "AvailableAction": {
         "type": "string",
-        "enum": [
-          "accept",
-          "pass",
-          "open_conversation",
-          "open_scheduler",
-          "complete_debrief"
-        ]
+        "enum": ["accept", "pass", "open_conversation", "open_scheduler", "complete_debrief"]
       },
       "IntroductionProfileSnapshot": {
         "type": "object",
-        "required": [
-          "first_name",
-          "age_display",
-          "neighborhood",
-          "photos",
-          "prompts"
-        ],
+        "required": ["first_name", "age_display", "neighborhood", "photos", "prompts"],
         "properties": {
           "first_name": {
             "type": "string"
@@ -171,10 +147,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "url"
-              ],
+              "required": ["id", "url"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -189,11 +162,7 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": [
-                "id",
-                "question",
-                "answer"
-              ],
+              "required": ["id", "question", "answer"],
               "properties": {
                 "id": {
                   "type": "string"
@@ -211,13 +180,7 @@
       },
       "ApprovedIntroductionNote": {
         "type": "object",
-        "required": [
-          "body",
-          "approved_by_staff_id",
-          "approved_at",
-          "source",
-          "human_reviewed"
-        ],
+        "required": ["body", "approved_by_staff_id", "approved_at", "source", "human_reviewed"],
         "properties": {
           "body": {
             "type": "string"
@@ -231,10 +194,7 @@
           },
           "source": {
             "type": "string",
-            "enum": [
-              "human_curated",
-              "ai_assisted"
-            ]
+            "enum": ["human_curated", "ai_assisted"]
           },
           "human_reviewed": {
             "type": "boolean",
@@ -259,16 +219,10 @@
             "type": "boolean"
           },
           "consent_version": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "consented_at": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
           "version": {
@@ -280,10 +234,7 @@
       "AiMatchmakingPreferencesUpdateRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "enabled",
-          "debrief_learning_enabled"
-        ],
+        "required": ["enabled", "debrief_learning_enabled"],
         "properties": {
           "enabled": {
             "type": "boolean"
@@ -344,10 +295,7 @@
           },
           "slot": {
             "type": "object",
-            "required": [
-              "occupied",
-              "penalty_release_at"
-            ],
+            "required": ["occupied", "penalty_release_at"],
             "properties": {
               "occupied": {
                 "type": "boolean"
@@ -369,12 +317,7 @@
       },
       "HealthResponse": {
         "type": "object",
-        "required": [
-          "status",
-          "user_id",
-          "contract_version",
-          "api_version"
-        ],
+        "required": ["status", "user_id", "contract_version", "api_version"],
         "properties": {
           "status": {
             "type": "string"
@@ -393,11 +336,7 @@
       "ApplicationSubmit": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "first_name",
-          "date_of_birth",
-          "neighborhood"
-        ],
+        "required": ["first_name", "date_of_birth", "neighborhood"],
         "properties": {
           "first_name": {
             "type": "string",
@@ -420,11 +359,7 @@
       "ApplicationDto": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "status",
-          "submitted_at"
-        ],
+        "required": ["id", "status", "submitted_at"],
         "properties": {
           "id": {
             "type": "string"
@@ -584,11 +519,7 @@
           },
           "debrief_state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "submitted",
-              "expired"
-            ],
+            "enum": ["pending", "submitted", "expired"],
             "nullable": true
           },
           "can_complete_debrief": {
@@ -634,11 +565,7 @@
           },
           "state": {
             "type": "string",
-            "enum": [
-              "pending",
-              "submitted",
-              "expired"
-            ]
+            "enum": ["pending", "submitted", "expired"]
           },
           "created_at": {
             "type": "string",
@@ -678,9 +605,7 @@
       },
       "UploadCreateRequest": {
         "type": "object",
-        "required": [
-          "purpose"
-        ],
+        "required": ["purpose"],
         "properties": {
           "purpose": {
             "type": "string",
@@ -706,13 +631,7 @@
       },
       "UploadDto": {
         "type": "object",
-        "required": [
-          "id",
-          "purpose",
-          "bucket",
-          "storage_path",
-          "status"
-        ],
+        "required": ["id", "purpose", "bucket", "storage_path", "status"],
         "properties": {
           "id": {
             "type": "string"
@@ -722,10 +641,7 @@
           },
           "bucket": {
             "type": "string",
-            "enum": [
-              "profile-photos",
-              "uploads"
-            ]
+            "enum": ["profile-photos", "uploads"]
           },
           "storage_path": {
             "type": "string"
@@ -738,10 +654,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "completed"
-            ]
+            "enum": ["pending", "completed"]
           },
           "content_type": {
             "type": "string",
@@ -780,12 +693,7 @@
       },
       "VenueDto": {
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "neighborhood",
-          "address_public"
-        ],
+        "required": ["id", "name", "neighborhood", "address_public"],
         "properties": {
           "id": {
             "type": "string"
@@ -805,9 +713,7 @@
       },
       "DateProposalBody": {
         "type": "object",
-        "required": [
-          "scheduled_at"
-        ],
+        "required": ["scheduled_at"],
         "properties": {
           "scheduled_at": {
             "type": "string",
@@ -821,14 +727,7 @@
       },
       "DebriefDateSummaryDto": {
         "type": "object",
-        "required": [
-          "id",
-          "conversation_id",
-          "state",
-          "starts_at",
-          "venue_id",
-          "venue"
-        ],
+        "required": ["id", "conversation_id", "state", "starts_at", "venue_id", "venue"],
         "properties": {
           "id": {
             "type": "string"
@@ -868,9 +767,7 @@
       },
       "DebriefSubmissionBody": {
         "type": "object",
-        "required": [
-          "date_happened"
-        ],
+        "required": ["date_happened"],
         "properties": {
           "date_happened": {
             "type": "boolean"
@@ -922,9 +819,7 @@
       },
       "DateRescheduleBody": {
         "type": "object",
-        "required": [
-          "scheduled_at"
-        ],
+        "required": ["scheduled_at"],
         "properties": {
           "scheduled_at": {
             "type": "string",
@@ -943,14 +838,7 @@
       },
       "SafetyEvidenceDto": {
         "type": "object",
-        "required": [
-          "id",
-          "upload_id",
-          "content_type",
-          "size_bytes",
-          "created_at",
-          "download_url"
-        ],
+        "required": ["id", "upload_id", "content_type", "size_bytes", "created_at", "download_url"],
         "properties": {
           "id": {
             "type": "string"
@@ -1026,21 +914,11 @@
           },
           "priority": {
             "type": "string",
-            "enum": [
-              "standard",
-              "high",
-              "urgent"
-            ]
+            "enum": ["standard", "high", "urgent"]
           },
           "state": {
             "type": "string",
-            "enum": [
-              "open",
-              "assigned",
-              "investigating",
-              "resolved",
-              "dismissed"
-            ]
+            "enum": ["open", "assigned", "investigating", "resolved", "dismissed"]
           },
           "resolution": {
             "type": "string",
@@ -1080,11 +958,7 @@
       },
       "CreateSafetyCaseBody": {
         "type": "object",
-        "required": [
-          "conversation_id",
-          "category",
-          "narrative"
-        ],
+        "required": ["conversation_id", "category", "narrative"],
         "properties": {
           "conversation_id": {
             "type": "string"
@@ -1119,9 +993,7 @@
       },
       "AttachSafetyEvidenceBody": {
         "type": "object",
-        "required": [
-          "upload_id"
-        ],
+        "required": ["upload_id"],
         "properties": {
           "upload_id": {
             "type": "string"
@@ -1200,9 +1072,7 @@
       },
       "NotificationUnreadCountDto": {
         "type": "object",
-        "required": [
-          "unread_count"
-        ],
+        "required": ["unread_count"],
         "properties": {
           "unread_count": {
             "type": "integer",
@@ -1212,9 +1082,7 @@
       },
       "MarkAllNotificationsReadDto": {
         "type": "object",
-        "required": [
-          "updated_count"
-        ],
+        "required": ["updated_count"],
         "properties": {
           "updated_count": {
             "type": "integer",
@@ -1222,31 +1090,52 @@
           }
         }
       },
+      "PushSettingsDto": {
+        "type": "object",
+        "required": ["enabled", "registered_device_count", "last_registered_at"],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "registered_device_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_registered_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RegisterPushDeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["expo_push_token", "platform"],
+        "properties": {
+          "expo_push_token": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 220,
+            "pattern": "^(Exponent|Expo)PushToken\\[[A-Za-z0-9_-]+\\]$"
+          },
+          "platform": {
+            "type": "string",
+            "enum": ["ios", "android"]
+          }
+        }
+      },
       "ConversationState": {
         "type": "string",
-        "enum": [
-          "open",
-          "closed_scheduled",
-          "closed_passed",
-          "closed_expired"
-        ]
+        "enum": ["open", "closed_scheduled", "closed_passed", "closed_expired"]
       },
       "ConversationAction": {
         "type": "string",
-        "enum": [
-          "propose_date",
-          "kind_close"
-        ]
+        "enum": ["propose_date", "kind_close"]
       },
       "ConversationMessageDto": {
         "type": "object",
-        "required": [
-          "id",
-          "body",
-          "sent_at",
-          "is_mine",
-          "moderation_status"
-        ],
+        "required": ["id", "body", "sent_at", "is_mine", "moderation_status"],
         "properties": {
           "id": {
             "type": "string"
@@ -1273,9 +1162,7 @@
           },
           {
             "type": "object",
-            "required": [
-              "conversation_version"
-            ],
+            "required": ["conversation_version"],
             "properties": {
               "conversation_version": {
                 "type": "integer",
@@ -1287,39 +1174,20 @@
       },
       "ApplicationStatus": {
         "type": "string",
-        "enum": [
-          "submitted",
-          "waitlisted",
-          "invited",
-          "declined",
-          "banned"
-        ]
+        "enum": ["submitted", "waitlisted", "invited", "declined", "banned"]
       },
       "ProfileVerificationState": {
         "type": "string",
-        "enum": [
-          "not_started",
-          "pending",
-          "verified",
-          "rejected"
-        ]
+        "enum": ["not_started", "pending", "verified", "rejected"]
       },
       "ProfileIntakeState": {
         "type": "string",
-        "enum": [
-          "not_started",
-          "in_progress",
-          "completed"
-        ]
+        "enum": ["not_started", "in_progress", "completed"]
       },
       "MemberProfilePrompt": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "question",
-          "answer"
-        ],
+        "required": ["id", "question", "answer"],
         "properties": {
           "id": {
             "type": "string"
@@ -1334,18 +1202,12 @@
       },
       "MembershipAction": {
         "type": "string",
-        "enum": [
-          "pause",
-          "resume",
-          "graduate"
-        ]
+        "enum": ["pause", "resume", "graduate"]
       },
       "MembershipActionRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "action"
-        ],
+        "required": ["action"],
         "properties": {
           "action": {
             "$ref": "#/components/schemas/MembershipAction"
@@ -1553,11 +1415,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "id",
-                "question",
-                "answer"
-              ],
+              "required": ["id", "question", "answer"],
               "properties": {
                 "id": {
                   "type": "string",
@@ -1580,12 +1438,7 @@
       },
       "VerificationState": {
         "type": "string",
-        "enum": [
-          "not_started",
-          "pending",
-          "verified",
-          "rejected"
-        ]
+        "enum": ["not_started", "pending", "verified", "rejected"]
       },
       "VerificationSessionDto": {
         "type": "object",
@@ -1609,11 +1462,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "passed",
-              "failed"
-            ]
+            "enum": ["pending", "passed", "failed"]
           },
           "age_assurance_passed": {
             "type": "boolean",
@@ -1690,9 +1539,7 @@
       "StartMemberVerificationRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "date_of_birth"
-        ],
+        "required": ["date_of_birth"],
         "properties": {
           "date_of_birth": {
             "type": "string",
@@ -1702,10 +1549,7 @@
       },
       "MemberVerificationEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/MemberVerificationDto"
@@ -1718,13 +1562,7 @@
       "IntakeSessionDto": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "modality",
-          "status",
-          "completed_at",
-          "created_at"
-        ],
+        "required": ["id", "modality", "status", "completed_at", "created_at"],
         "properties": {
           "id": {
             "type": "string",
@@ -1732,18 +1570,11 @@
           },
           "modality": {
             "type": "string",
-            "enum": [
-              "voice",
-              "text"
-            ]
+            "enum": ["voice", "text"]
           },
           "status": {
             "type": "string",
-            "enum": [
-              "in_progress",
-              "completed",
-              "abandoned"
-            ]
+            "enum": ["in_progress", "completed", "abandoned"]
           },
           "completed_at": {
             "type": "string",
@@ -1864,13 +1695,7 @@
           },
           "screen_status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "pass",
-              "flag",
-              "block",
-              "override_pass"
-            ]
+            "enum": ["pending", "pass", "flag", "block", "override_pass"]
           },
           "screen_reason": {
             "type": "string",
@@ -1917,19 +1742,11 @@
       "MemberActivationReadiness": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "state",
-          "can_approve",
-          "requirements"
-        ],
+        "required": ["state", "can_approve", "requirements"],
         "properties": {
           "state": {
             "type": "string",
-            "enum": [
-              "not_ready",
-              "ready",
-              "active"
-            ]
+            "enum": ["not_ready", "ready", "active"]
           },
           "can_approve": {
             "type": "boolean"
@@ -2085,61 +1902,29 @@
           "matchmaker_notes"
         ],
         "properties": {
-          "relationship_goal": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
+          "relationship_goal": { "type": "string", "nullable": true, "maxLength": 500 },
           "partner_qualities": {
             "type": "array",
             "maxItems": 8,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 80
-            }
+            "items": { "type": "string", "minLength": 1, "maxLength": 80 }
           },
           "dealbreakers": {
             "type": "array",
             "maxItems": 8,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 80
-            }
+            "items": { "type": "string", "minLength": 1, "maxLength": 80 }
           },
           "values": {
             "type": "array",
             "maxItems": 8,
             "uniqueItems": true,
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 80
-            }
+            "items": { "type": "string", "minLength": 1, "maxLength": 80 }
           },
-          "communication_style": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
-          "typical_availability": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
-          "location_preferences": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
-          "matchmaker_notes": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2000
-          }
+          "communication_style": { "type": "string", "nullable": true, "maxLength": 500 },
+          "typical_availability": { "type": "string", "nullable": true, "maxLength": 500 },
+          "location_preferences": { "type": "string", "nullable": true, "maxLength": 500 },
+          "matchmaker_notes": { "type": "string", "nullable": true, "maxLength": 2000 }
         }
       },
       "VoiceIntakeReflectionDto": {
@@ -2162,10 +1947,7 @@
           "updated_at"
         ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "id": { "type": "string", "format": "uuid" },
           "status": {
             "type": "string",
             "enum": [
@@ -2177,134 +1959,67 @@
               "discarded"
             ]
           },
-          "transcript": {
-            "type": "string",
-            "nullable": true
-          },
+          "transcript": { "type": "string", "nullable": true },
           "suggested_answers": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VoiceIntakeAnswers"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/VoiceIntakeAnswers" }],
             "nullable": true
           },
           "approved_answers": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/VoiceIntakeAnswers"
-              }
-            ],
+            "allOf": [{ "$ref": "#/components/schemas/VoiceIntakeAnswers" }],
             "nullable": true
           },
-          "raw_audio_deleted": {
-            "type": "boolean"
-          },
-          "provider": {
-            "type": "string",
-            "nullable": true
-          },
-          "transcription_model": {
-            "type": "string",
-            "nullable": true
-          },
-          "extraction_model": {
-            "type": "string",
-            "nullable": true
-          },
-          "prompt_version": {
-            "type": "string"
-          },
-          "failure_reason": {
-            "type": "string",
-            "nullable": true
-          },
-          "confirmed_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "raw_audio_deleted": { "type": "boolean" },
+          "provider": { "type": "string", "nullable": true },
+          "transcription_model": { "type": "string", "nullable": true },
+          "extraction_model": { "type": "string", "nullable": true },
+          "prompt_version": { "type": "string" },
+          "failure_reason": { "type": "string", "nullable": true },
+          "confirmed_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
         }
       },
       "VoiceIntakeStatusEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "provider_available",
-              "reflection"
-            ],
+            "required": ["provider_available", "reflection"],
             "properties": {
-              "provider_available": {
-                "type": "boolean"
-              },
+              "provider_available": { "type": "boolean" },
               "reflection": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/VoiceIntakeReflectionDto"
-                  }
-                ],
+                "allOf": [{ "$ref": "#/components/schemas/VoiceIntakeReflectionDto" }],
                 "nullable": true
               }
             }
           },
-          "meta": {
-            "$ref": "#/components/schemas/ApiEnvelopeMeta"
-          }
+          "meta": { "$ref": "#/components/schemas/ApiEnvelopeMeta" }
         }
       },
       "VoiceIntakeReflectionEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
-          "data": {
-            "$ref": "#/components/schemas/VoiceIntakeReflectionDto"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiEnvelopeMeta"
-          }
+          "data": { "$ref": "#/components/schemas/VoiceIntakeReflectionDto" },
+          "meta": { "$ref": "#/components/schemas/ApiEnvelopeMeta" }
         }
       },
       "ProcessVoiceIntakeRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "upload_id"
-        ],
+        "required": ["upload_id"],
         "properties": {
-          "upload_id": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "upload_id": { "type": "string", "format": "uuid" }
         }
       },
       "ConfirmVoiceIntakeRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "answers"
-        ],
+        "required": ["answers"],
         "properties": {
-          "answers": {
-            "$ref": "#/components/schemas/VoiceIntakeAnswers"
-          }
+          "answers": { "$ref": "#/components/schemas/VoiceIntakeAnswers" }
         }
       },
       "PrivacyRequestDto": {
@@ -2321,16 +2036,10 @@
           "resolved_at"
         ],
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "id": { "type": "string", "format": "uuid" },
           "request_type": {
             "type": "string",
-            "enum": [
-              "data_access",
-              "account_deletion"
-            ]
+            "enum": ["data_access", "account_deletion"]
           },
           "status": {
             "type": "string",
@@ -2343,100 +2052,58 @@
               "declined"
             ]
           },
-          "member_message": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 1000
-          },
-          "target_response_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "submitted_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "resolved_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
+          "member_message": { "type": "string", "nullable": true, "maxLength": 1000 },
+          "target_response_at": { "type": "string", "format": "date-time" },
+          "submitted_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "resolved_at": { "type": "string", "format": "date-time", "nullable": true }
         }
       },
       "PrivacyRequestsEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PrivacyRequestDto"
-            }
+            "items": { "$ref": "#/components/schemas/PrivacyRequestDto" }
           },
-          "meta": {
-            "$ref": "#/components/schemas/ApiEnvelopeMeta"
-          }
+          "meta": { "$ref": "#/components/schemas/ApiEnvelopeMeta" }
         }
       },
       "PrivacyRequestEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
-          "data": {
-            "$ref": "#/components/schemas/PrivacyRequestDto"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/ApiEnvelopeMeta"
-          }
+          "data": { "$ref": "#/components/schemas/PrivacyRequestDto" },
+          "meta": { "$ref": "#/components/schemas/ApiEnvelopeMeta" }
         }
       },
       "SubmitPrivacyRequestBody": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "request_type"
-        ],
+        "required": ["request_type"],
         "properties": {
           "request_type": {
             "type": "string",
-            "enum": [
-              "data_access",
-              "account_deletion"
-            ]
+            "enum": ["data_access", "account_deletion"]
           }
         }
       },
       "StartMemberIntakeRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "modality"
-        ],
+        "required": ["modality"],
         "properties": {
           "modality": {
             "type": "string",
-            "enum": [
-              "text"
-            ]
+            "enum": ["text"]
           }
         }
       },
       "SubmitMemberIntakeRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "answers"
-        ],
+        "required": ["answers"],
         "properties": {
           "answers": {
             "$ref": "#/components/schemas/IntakeAnswers"
@@ -2446,9 +2113,7 @@
       "RegisterMemberProfilePhotoRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "upload_id"
-        ],
+        "required": ["upload_id"],
         "properties": {
           "upload_id": {
             "type": "string",
@@ -2478,17 +2143,12 @@
       "ApproveMemberIntakeDossierRequest": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "confirmations"
-        ],
+        "required": ["confirmations"],
         "properties": {
           "confirmations": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "dossier_accurate",
-              "matchmaking_processing_consented"
-            ],
+            "required": ["dossier_accurate", "matchmaking_processing_consented"],
             "properties": {
               "dossier_accurate": {
                 "type": "boolean",
@@ -2504,10 +2164,7 @@
       },
       "MemberIntakeEnvelope": {
         "type": "object",
-        "required": [
-          "data",
-          "meta"
-        ],
+        "required": ["data", "meta"],
         "properties": {
           "data": {
             "$ref": "#/components/schemas/MemberIntakeDto"
@@ -2606,10 +2263,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/HealthResponse"
@@ -2647,38 +2301,13 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Existing application returned.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/ApplicationDto"
-                    },
-                    "meta": {
-                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "201": {
             "description": "Application submitted.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ApplicationDto"
@@ -2694,11 +2323,30 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "422": {
-            "$ref": "#/components/responses/Conflict"
-          },
           "501": {
             "$ref": "#/components/responses/NotImplemented"
+          },
+          "200": {
+            "description": "Existing application returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ApplicationDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -2713,10 +2361,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ApplicationDto"
@@ -2751,10 +2396,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -2799,10 +2441,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberIntroductionDto"
@@ -2853,10 +2492,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberIntroductionDto"
@@ -2931,10 +2567,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberIntroductionDto"
@@ -2982,10 +2615,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ConversationDto"
@@ -3035,9 +2665,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "body"
-                ],
+                "required": ["body"],
                 "properties": {
                   "body": {
                     "type": "string",
@@ -3056,10 +2684,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/SentConversationMessageDto"
@@ -3123,10 +2748,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/ConversationDto"
@@ -3174,10 +2796,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DateDto"
@@ -3228,10 +2847,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DateDto"
@@ -3269,10 +2885,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -3314,10 +2927,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DebriefDto"
@@ -3370,10 +2980,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DebriefDto"
@@ -3424,10 +3031,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/UploadDto"
@@ -3488,10 +3092,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/UploadDto"
@@ -3542,10 +3143,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "object",
@@ -3585,10 +3183,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -3620,10 +3215,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -3681,10 +3273,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DateDto"
@@ -3745,10 +3334,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DateDto"
@@ -3809,10 +3395,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/DateDto"
@@ -3847,10 +3430,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -3892,10 +3472,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberSafetyCaseDto"
@@ -3937,10 +3514,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberSafetyCaseDto"
@@ -3992,10 +3566,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberSafetyCaseDto"
@@ -4029,13 +3600,7 @@
             "name": "state",
             "schema": {
               "type": "string",
-              "enum": [
-                "open",
-                "assigned",
-                "investigating",
-                "resolved",
-                "dismissed"
-              ]
+              "enum": ["open", "assigned", "investigating", "resolved", "dismissed"]
             }
           },
           {
@@ -4063,10 +3628,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -4108,10 +3670,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/StaffSafetyCaseDto"
@@ -4159,10 +3718,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/StaffSafetyCaseDto"
@@ -4213,10 +3769,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/StaffSafetyCaseDto"
@@ -4248,9 +3801,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "note"
-                ],
+                "required": ["note"],
                 "properties": {
                   "note": {
                     "type": "string",
@@ -4290,10 +3841,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/StaffSafetyCaseDto"
@@ -4325,9 +3873,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "resolution"
-                ],
+                "required": ["resolution"],
                 "properties": {
                   "resolution": {
                     "type": "string",
@@ -4383,10 +3929,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -4415,10 +3958,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/NotificationUnreadCountDto"
@@ -4457,10 +3997,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberNotificationDto"
@@ -4494,10 +4031,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MarkAllNotificationsReadDto"
@@ -4513,11 +4047,132 @@
         }
       }
     },
+    "/members/me/push-settings": {
+      "get": {
+        "tags": ["Members"],
+        "summary": "Get native push registration status for the authenticated member",
+        "operationId": "getMyPushSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PushSettingsDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/members/me/push-devices": {
+      "post": {
+        "tags": ["Members"],
+        "summary": "Register or refresh an Expo push token after explicit member opt-in",
+        "operationId": "registerMyPushDevice",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushDeviceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PushSettingsDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Members"],
+        "summary": "Disable every native push device for the authenticated member",
+        "operationId": "disableMyPushDevices",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PushSettingsDto"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ApiEnvelopeMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
     "/members/me/profile": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Get the authenticated member profile",
         "operationId": "getMyMemberProfile",
         "security": [
@@ -4532,10 +4187,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberProfileDto"
@@ -4561,9 +4213,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Update the authenticated member profile",
         "operationId": "updateMyMemberProfile",
         "security": [
@@ -4608,10 +4258,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberProfileDto"
@@ -4642,9 +4289,7 @@
     },
     "/members/me/ai-matchmaking": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Get the authenticated member's AI matchmaking consent",
         "description": "Returns explicit, revocable AI-matchmaking and structured-debrief-learning preferences. AI matchmaking is disabled by default.",
         "operationId": "getMyAiMatchmakingPreferences",
@@ -4672,10 +4317,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AiMatchmakingPreferencesDto"
@@ -4697,9 +4339,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Update the authenticated member's AI matchmaking consent",
         "description": "Records or revokes explicit consent. Enabling structured date-feedback learning is optional and never includes private debrief notes.",
         "operationId": "updateMyAiMatchmakingPreferences",
@@ -4745,10 +4385,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/AiMatchmakingPreferencesDto"
@@ -4778,56 +4415,34 @@
     },
     "/members/me/privacy-requests": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "List the authenticated member's privacy requests",
         "operationId": "listMyPrivacyRequests",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Privacy request history.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivacyRequestsEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/PrivacyRequestsEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       },
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Submit an authenticated privacy request",
         "description": "Creates a tracked data-access or account-deletion request. Submission does not immediately delete the account; staff review retention and identity requirements before completion.",
         "operationId": "submitMyPrivacyRequest",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubmitPrivacyRequestBody"
-              }
+              "schema": { "$ref": "#/components/schemas/SubmitPrivacyRequestBody" }
             }
           }
         },
@@ -4836,51 +4451,30 @@
             "description": "Privacy request submitted.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivacyRequestEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/PrivacyRequestEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
         }
       }
     },
     "/members/me/privacy-requests/{id}/cancel": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Cancel an active privacy request",
         "operationId": "cancelMyPrivacyRequest",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          },
+          { "$ref": "#/components/parameters/IdempotencyKey" },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           }
         ],
         "responses": {
@@ -4888,29 +4482,19 @@
             "description": "Privacy request cancelled.",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrivacyRequestEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/PrivacyRequestEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
         }
       }
     },
     "/members/me/membership": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Pause, resume, or graduate the authenticated membership",
         "operationId": "changeMyMembership",
         "security": [
@@ -4943,10 +4527,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "meta"
-                  ],
+                  "required": ["data", "meta"],
                   "properties": {
                     "data": {
                       "$ref": "#/components/schemas/MemberProfileDto"
@@ -4976,9 +4557,7 @@
     },
     "/members/me/verification": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Get the authenticated member verification state",
         "operationId": "getMyVerification",
         "security": [
@@ -5018,9 +4597,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Start identity verification for the authenticated member",
         "operationId": "startMyVerification",
         "security": [
@@ -5097,9 +4674,7 @@
     },
     "/members/me/intake": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Get the authenticated member matchmaking intake",
         "operationId": "getMyIntake",
         "security": [
@@ -5141,9 +4716,7 @@
     },
     "/members/me/intake/voice": {
       "get": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Get voice-intake availability and the latest private reflection",
         "operationId": "getMyVoiceIntake",
         "responses": {
@@ -5151,24 +4724,16 @@
             "description": "Voice-intake availability and latest reflection",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VoiceIntakeStatusEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/VoiceIntakeStatusEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
         }
       },
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Privately transcribe a voice reflection and create editable suggestions",
         "description": "Requires a completed private `intake_voice` upload and an in-progress intake. Processing uses the configured AI provider with provider-side storage disabled. Raw audio is deleted immediately after transcription. Suggestions cannot affect matchmaking until the member reviews and confirms them.",
         "operationId": "processMyVoiceIntake",
@@ -5177,18 +4742,14 @@
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ProcessVoiceIntakeRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ProcessVoiceIntakeRequest" }
             }
           }
         },
@@ -5197,31 +4758,19 @@
             "description": "Transcript and editable suggestions are ready for member review",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" },
           "429": {
             "description": "Daily voice-reflection limit reached",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
               }
             }
           },
@@ -5229,9 +4778,7 @@
             "description": "AI voice processing is unavailable; text intake remains available",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/ErrorEnvelope" }
               }
             }
           }
@@ -5240,9 +4787,7 @@
     },
     "/members/me/intake/voice/{reflection_id}/confirm": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Confirm member-reviewed voice-intake suggestions",
         "description": "Stores only the member-approved facts and deletes the transcript. Confirmed facts are offered as editable questionnaire answers and are cleared from the temporary voice record after intake submission.",
         "operationId": "confirmMyVoiceIntake",
@@ -5251,27 +4796,20 @@
             "name": "reflection_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConfirmVoiceIntakeRequest"
-              }
+              "schema": { "$ref": "#/components/schemas/ConfirmVoiceIntakeRequest" }
             }
           }
         },
@@ -5280,32 +4818,20 @@
             "description": "Member-approved facts saved and transcript deleted",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" }
         }
       }
     },
     "/members/me/intake/voice/{reflection_id}": {
       "delete": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Discard a private voice reflection and its temporary data",
         "operationId": "discardMyVoiceIntake",
         "parameters": [
@@ -5313,18 +4839,13 @@
             "name": "reflection_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+            "schema": { "type": "string", "format": "uuid" }
           },
           {
             "name": "X-Idempotency-Key",
             "in": "header",
             "required": false,
-            "schema": {
-              "type": "string"
-            }
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -5332,29 +4853,19 @@
             "description": "Reflection, transcript, and any remaining audio discarded",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope"
-                }
+                "schema": { "$ref": "#/components/schemas/VoiceIntakeReflectionEnvelope" }
               }
             }
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "422": {
-            "$ref": "#/components/responses/ValidationFailed"
-          }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationFailed" }
         }
       }
     },
     "/members/me/intake/sessions": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Start a member-authored matchmaking intake session",
         "operationId": "startMyIntake",
         "security": [
@@ -5431,9 +4942,7 @@
     },
     "/members/me/intake/sessions/{session_id}/submit": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Submit a member-authored matchmaking intake",
         "operationId": "submitMyIntake",
         "security": [
@@ -5522,9 +5031,7 @@
     },
     "/members/me/profile/photos": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Register a completed private profile-photo upload",
         "operationId": "registerMyProfilePhoto",
         "security": [
@@ -5604,9 +5111,7 @@
     },
     "/members/me/profile/photos/{photo_id}": {
       "patch": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Change an approved primary photo or reorder the private gallery",
         "operationId": "updateMyProfilePhoto",
         "security": [
@@ -5693,9 +5198,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Remove a photo from the private member gallery",
         "operationId": "deleteMyProfilePhoto",
         "security": [
@@ -5774,9 +5277,7 @@
     },
     "/members/me/intake/dossier/approve": {
       "post": {
-        "tags": [
-          "Members"
-        ],
+        "tags": ["Members"],
         "summary": "Approve the member-visible dossier and activate an eligible member",
         "operationId": "approveMyIntakeDossier",
         "security": [

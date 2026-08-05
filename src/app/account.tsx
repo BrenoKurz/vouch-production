@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import { type Href, router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,6 +22,11 @@ import {
   StackHeader,
 } from "@/components/vouch-ui";
 import { layout, palette, radius, space, typography } from "@/constants/design";
+import {
+  disablePushNotifications,
+  getPushSettings,
+  registerForPushNotifications,
+} from "@/lib/push-notifications";
 import { useAuth } from "@/providers/auth-provider";
 
 type PreferenceMetadata = {
@@ -43,13 +48,36 @@ export default function AccountScreen() {
   const [emailUpdates, setEmailUpdates] = useState(
     savedPreferences.email ?? true,
   );
+  const [pushUpdates, setPushUpdates] = useState(
+    savedPreferences.push ?? false,
+  );
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isSavingPreferences, setIsSavingPreferences] = useState(false);
+  const [isSavingPush, setIsSavingPush] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState("");
   const [preferenceMessage, setPreferenceMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const accessToken = session?.access_token;
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    let cancelled = false;
+    void getPushSettings(accessToken)
+      .then((settings) => {
+        if (!cancelled) setPushUpdates(settings.enabled);
+      })
+      .catch(() => {
+        // The explicit toggle action surfaces errors. Initial status refresh is
+        // intentionally quiet so account settings remain usable offline.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   async function savePassword() {
     if (newPassword.length < 8) {
@@ -80,7 +108,7 @@ export default function AccountScreen() {
     }
   }
 
-  async function savePreferences(nextEmailValue: boolean) {
+  async function saveEmailPreference(nextEmailValue: boolean) {
     setEmailUpdates(nextEmailValue);
     setIsSavingPreferences(true);
     setErrorMessage("");
@@ -89,7 +117,7 @@ export default function AccountScreen() {
       await updateCommunicationPreferences({
         email: nextEmailValue,
         inApp: true,
-        push: savedPreferences.push ?? false,
+        push: pushUpdates,
       });
       setPreferenceMessage("Communication preference saved.");
     } catch (error) {
@@ -101,6 +129,55 @@ export default function AccountScreen() {
       );
     } finally {
       setIsSavingPreferences(false);
+    }
+  }
+
+  async function savePushPreference(nextPushValue: boolean) {
+    if (!accessToken) {
+      setErrorMessage("Sign in again to update push notifications.");
+      return;
+    }
+
+    setPushUpdates(nextPushValue);
+    setIsSavingPush(true);
+    setErrorMessage("");
+    setPreferenceMessage("");
+
+    try {
+      if (nextPushValue) {
+        await registerForPushNotifications(accessToken, {
+          requestPermission: true,
+        });
+      } else {
+        await disablePushNotifications(accessToken);
+      }
+
+      await updateCommunicationPreferences({
+        email: emailUpdates,
+        inApp: true,
+        push: nextPushValue,
+      });
+      setPreferenceMessage(
+        nextPushValue
+          ? "Private push updates are on. Lock-screen text stays generic."
+          : "Push notifications are off for all your registered devices.",
+      );
+    } catch (error) {
+      if (nextPushValue) {
+        try {
+          await disablePushNotifications(accessToken);
+        } catch {
+          // The original registration error is the useful message to show.
+        }
+      }
+      setPushUpdates(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "We could not update push notifications.",
+      );
+    } finally {
+      setIsSavingPush(false);
     }
   }
 
@@ -212,6 +289,34 @@ export default function AccountScreen() {
                 <View style={styles.settingIcon}>
                   <Ionicons
                     color={palette.brand}
+                    name="phone-portrait-outline"
+                    size={21}
+                  />
+                </View>
+                <View style={styles.switchCopy}>
+                  <Text style={styles.rowTitle}>Private push notifications</Text>
+                  <Text style={styles.rowBody}>
+                    Get a generic lock-screen alert, then sign in to see the
+                    private update. No match, message, date, or safety details
+                    appear in the alert.
+                  </Text>
+                </View>
+                <Switch
+                  disabled={isSavingPreferences || isSavingPush}
+                  onValueChange={(value) => void savePushPreference(value)}
+                  value={pushUpdates}
+                  trackColor={{
+                    false: palette.canvasStrong,
+                    true: palette.sageSoft,
+                  }}
+                  thumbColor={pushUpdates ? palette.sage : palette.subtle}
+                />
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.switchRow}>
+                <View style={styles.settingIcon}>
+                  <Ionicons
+                    color={palette.brand}
                     name="newspaper-outline"
                     size={21}
                   />
@@ -224,8 +329,8 @@ export default function AccountScreen() {
                   </Text>
                 </View>
                 <Switch
-                  disabled={isSavingPreferences}
-                  onValueChange={(value) => void savePreferences(value)}
+                  disabled={isSavingPreferences || isSavingPush}
+                  onValueChange={(value) => void saveEmailPreference(value)}
                   value={emailUpdates}
                   trackColor={{
                     false: palette.canvasStrong,

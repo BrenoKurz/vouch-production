@@ -8,14 +8,23 @@
     "scheme": "vouch",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/images/vouch-icon.png"
+      "icon": "./assets/images/vouch-icon.png",
+      "bundleIdentifier": "com.vouchdating.app",
+      "supportsTablet": false
     },
     "android": {
+      "package": "com.vouchdating.app",
       "adaptiveIcon": {
         "backgroundColor": "#713F36",
         "foregroundImage": "./assets/images/vouch-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -57,11 +66,24 @@
           "enableBackgroundRecording": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#713F36",
+          "defaultChannel": "vouch-updates"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "894a98f0-d04d-421c-a8a6-e0a27cb910fb"
+      }
+    },
+    "owner": "brenorosada"
   }
 }
