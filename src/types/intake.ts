@@ -21,6 +21,15 @@ export type RegisterProfilePhotoEnvelope =
 export type RegisterProfilePhotoRequest =
   paths["/members/me/profile/photos"]["post"]["requestBody"]["content"]["application/json"];
 
+export type UpdateProfilePhotoEnvelope =
+  paths["/members/me/profile/photos/{photo_id}"]["patch"]["responses"][200]["content"]["application/json"];
+
+export type UpdateProfilePhotoRequest =
+  paths["/members/me/profile/photos/{photo_id}"]["patch"]["requestBody"]["content"]["application/json"];
+
+export type DeleteProfilePhotoEnvelope =
+  paths["/members/me/profile/photos/{photo_id}"]["delete"]["responses"][200]["content"]["application/json"];
+
 export type ApproveDossierEnvelope =
   paths["/members/me/intake/dossier/approve"]["post"]["responses"][200]["content"]["application/json"];
 

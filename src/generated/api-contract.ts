@@ -1824,6 +1824,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/me/profile/photos/{photo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a photo from the private member gallery */
+        delete: operations["deleteMyProfilePhoto"];
+        options?: never;
+        head?: never;
+        /** Change an approved primary photo or reorder the private gallery */
+        patch: operations["updateMyProfilePhoto"];
+        trace?: never;
+    };
     "/members/me/intake/dossier/approve": {
         parameters: {
             query?: never;
@@ -2352,6 +2370,11 @@ export interface components {
             upload_id: string;
             is_primary?: boolean;
         };
+        UpdateMemberProfilePhotoRequest: {
+            /** @constant */
+            make_primary?: true;
+            ordering?: number;
+        };
         ApproveMemberIntakeDossierRequest: {
             confirmations: {
                 /** @constant */
@@ -2760,6 +2783,74 @@ export interface operations {
         };
         responses: {
             /** @description Canonical intake and activation state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteMyProfilePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path: {
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical intake and photo-gallery state */
+            200: {
+                headers: {
+                    ETag?: string;
+                    "X-Resource-Version"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberIntakeEnvelope"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateMyProfilePhoto: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": number;
+                "X-Idempotency-Key"?: string;
+            };
+            path: {
+                photo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberProfilePhotoRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical intake and photo-gallery state */
             200: {
                 headers: {
                     ETag?: string;

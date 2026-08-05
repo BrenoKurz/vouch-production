@@ -207,3 +207,17 @@ export function apiPatch<TResponse, TBody>(
     headers,
   });
 }
+
+export function apiDelete<TResponse>(
+  path: string,
+  accessToken: string,
+  idempotencyKey?: string,
+  headers?: Record<string, string>,
+): Promise<TResponse> {
+  return apiRequest<TResponse>(path, {
+    method: "DELETE",
+    accessToken,
+    idempotencyKey,
+    headers,
+  });
+}

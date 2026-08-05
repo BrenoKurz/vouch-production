@@ -3,8 +3,10 @@ import * as ImagePicker from "expo-image-picker";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,7 +31,11 @@ import {
   typography,
 } from "@/constants/design";
 import { ApiError, apiGet } from "@/lib/api";
-import { uploadProfilePhoto } from "@/lib/profile-photos";
+import {
+  deleteProfilePhoto,
+  updateProfilePhoto,
+  uploadProfilePhoto,
+} from "@/lib/profile-photos";
 import { useAuth } from "@/providers/auth-provider";
 import type {
   IntakeEnvelope,
@@ -125,12 +131,10 @@ export default function ProfilePhotosScreen() {
   const [intake, setIntake] = useState<MemberIntake | null>(null);
   const [selectedPhoto, setSelectedPhoto] =
     useState<LocalProfilePhotoAsset | null>(null);
-  const [sessionPreviewUri, setSessionPreviewUri] = useState<string | null>(
-    null,
-  );
   const [isLoading, setIsLoading] = useState(true);
   const [isPicking, setIsPicking] = useState<PhotoSource | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [busyPhotoId, setBusyPhotoId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -200,6 +204,13 @@ export default function ProfilePhotosScreen() {
     () =>
       intake?.profile_photos.find((photo) => photo.is_primary) ??
       intake?.profile_photos[0],
+    [intake?.profile_photos],
+  );
+  const orderedPhotos = useMemo(
+    () =>
+      (intake?.profile_photos ?? [])
+        .slice()
+        .sort((a, b) => a.ordering - b.ordering),
     [intake?.profile_photos],
   );
   const status = photoStatus(primaryPhoto);
@@ -275,13 +286,15 @@ export default function ProfilePhotosScreen() {
         accessToken,
         asset: selectedPhoto,
         version: intake.version,
+        isPrimary: intake.profile_photos.length === 0,
       });
 
       setIntake(response.data);
-      setSessionPreviewUri(selectedPhoto.uri);
       setSelectedPhoto(null);
       setSuccessMessage(
-        "Your new primary photo was uploaded and sent for private review.",
+        intake.profile_photos.length === 0
+          ? "Your primary photo was uploaded and sent for private review."
+          : "Your photo was added to the private gallery and sent for review.",
       );
     } catch (error) {
       if (error instanceof ApiError && error.code === "version_conflict") {
@@ -299,6 +312,96 @@ export default function ProfilePhotosScreen() {
     } finally {
       setIsUploading(false);
     }
+  }
+
+  async function changePhoto(
+    photo: IntakeProfilePhoto,
+    body: { make_primary?: true; ordering?: number },
+    success: string,
+  ) {
+    if (!accessToken || !intake || busyPhotoId || isUploading) {
+      return;
+    }
+
+    setBusyPhotoId(photo.id);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await updateProfilePhoto({
+        accessToken,
+        photoId: photo.id,
+        version: intake.version,
+        body,
+      });
+      setIntake(response.data);
+      setSuccessMessage(success);
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "version_conflict") {
+        setErrorMessage(
+          "Your gallery changed on another screen. We refreshed it; please try again.",
+        );
+        await load();
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "We could not update that photo.",
+        );
+      }
+    } finally {
+      setBusyPhotoId(null);
+    }
+  }
+
+  async function removePhoto(photo: IntakeProfilePhoto) {
+    if (!accessToken || !intake || busyPhotoId || isUploading) {
+      return;
+    }
+
+    setBusyPhotoId(photo.id);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await deleteProfilePhoto({
+        accessToken,
+        photoId: photo.id,
+        version: intake.version,
+      });
+      setIntake(response.data);
+      setSuccessMessage("The photo was removed from your private gallery.");
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "version_conflict") {
+        setErrorMessage(
+          "Your gallery changed on another screen. We refreshed it; please try again.",
+        );
+        await load();
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "We could not remove that photo.",
+        );
+      }
+    } finally {
+      setBusyPhotoId(null);
+    }
+  }
+
+  function confirmRemove(photo: IntakeProfilePhoto) {
+    Alert.alert(
+      "Remove this photo?",
+      "It will disappear from your private gallery and future introductions.",
+      [
+        { text: "Keep photo", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => void removePhoto(photo),
+        },
+      ],
+    );
   }
 
   if (isLoading && !intake) {
@@ -362,10 +465,10 @@ export default function ProfilePhotosScreen() {
                 source={{ uri: selectedPhoto.uri }}
                 style={styles.preview}
               />
-            ) : sessionPreviewUri || primaryPhoto?.url ? (
+            ) : primaryPhoto?.url ? (
               <Image
                 accessibilityLabel="Your stored profile photo"
-                source={{ uri: sessionPreviewUri || primaryPhoto?.url || "" }}
+                source={{ uri: primaryPhoto.url }}
                 style={styles.preview}
               />
             ) : (
@@ -407,7 +510,7 @@ export default function ProfilePhotosScreen() {
               <AppButton
                 loading={isUploading}
                 label={
-                  primaryPhoto ? "Use as new primary" : "Use this photo"
+                  primaryPhoto ? "Add to private gallery" : "Use this photo"
                 }
                 onPress={() => void saveSelectedPhoto()}
               />
@@ -415,17 +518,31 @@ export default function ProfilePhotosScreen() {
           ) : (
             <View style={styles.sourceActions}>
               <AppButton
-                disabled={Boolean(isPicking)}
+                disabled={
+                  Boolean(isPicking) || intake.profile_photos.length >= 6
+                }
                 icon="camera-outline"
-                label={isPicking === "camera" ? "Opening…" : "Take photo"}
+                label={
+                  intake.profile_photos.length >= 6
+                    ? "Gallery full"
+                    : isPicking === "camera"
+                      ? "Opening…"
+                      : "Take photo"
+                }
                 onPress={() => void choosePhoto("camera")}
                 variant="secondary"
               />
               <AppButton
-                disabled={Boolean(isPicking)}
+                disabled={
+                  Boolean(isPicking) || intake.profile_photos.length >= 6
+                }
                 icon="images-outline"
                 label={
-                  isPicking === "library" ? "Opening…" : "Choose from library"
+                  intake.profile_photos.length >= 6
+                    ? "Remove one to add"
+                    : isPicking === "library"
+                      ? "Opening…"
+                      : "Choose from library"
                 }
                 onPress={() => void choosePhoto("library")}
               />
@@ -454,33 +571,161 @@ export default function ProfilePhotosScreen() {
         </View>
 
         {intake.profile_photos.length > 0 ? (
-          <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>Private review history</Text>
-            {intake.profile_photos
-              .slice()
-              .sort((a, b) => a.ordering - b.ordering)
-              .map((photo, index) => {
+          <View style={styles.gallerySection}>
+            <Text style={styles.sectionEyebrow}>YOUR PRIVATE GALLERY</Text>
+            <Text style={styles.sectionTitle}>Choose the story you show</Text>
+            <Text style={styles.galleryIntro}>
+              Add up to six photos, choose an approved primary, and arrange
+              the order used in future introductions.
+            </Text>
+            <View style={styles.galleryGrid}>
+              {orderedPhotos.map((photo, index) => {
                 const copy = photoStatus(photo);
+                const isApproved =
+                  photo.screen_status === "pass" ||
+                  photo.screen_status === "override_pass";
+                const isBusy = busyPhotoId === photo.id;
+
                 return (
-                  <View key={photo.id} style={styles.historyRow}>
-                    <View style={styles.historyIndex}>
-                      <Text style={styles.historyIndexText}>{index + 1}</Text>
+                  <View key={photo.id} style={styles.galleryCard}>
+                    <View style={styles.galleryImageFrame}>
+                      {photo.url ? (
+                        <Image
+                          accessibilityLabel={`Private gallery photo ${index + 1}`}
+                          source={{ uri: photo.url }}
+                          style={styles.galleryImage}
+                        />
+                      ) : (
+                        <View style={styles.galleryImageFallback}>
+                          <Ionicons
+                            color={palette.brand}
+                            name="image-outline"
+                            size={28}
+                          />
+                        </View>
+                      )}
+                      <View style={styles.galleryPosition}>
+                        <Text style={styles.galleryPositionText}>{index + 1}</Text>
+                      </View>
                     </View>
-                    <View style={styles.historyCopy}>
-                      <Text style={styles.historyLabel}>
-                        {photo.is_primary ? "Primary photo" : "Previous photo"}
+
+                    <View style={styles.galleryMeta}>
+                      <Text style={styles.galleryLabel}>
+                        {photo.is_primary ? "Primary photo" : `Photo ${index + 1}`}
                       </Text>
-                      <Text style={styles.historyDate}>
-                        Uploaded{" "}
-                        {new Intl.DateTimeFormat(undefined, {
-                          dateStyle: "medium",
-                        }).format(new Date(photo.created_at))}
-                      </Text>
+                      <StatusPill label={copy.label} tone={copy.tone} />
                     </View>
-                    <StatusPill label={copy.label} tone={copy.tone} />
+
+                    {!photo.is_primary && isApproved ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        disabled={Boolean(busyPhotoId) || isUploading}
+                        onPress={() =>
+                          void changePhoto(
+                            photo,
+                            { make_primary: true },
+                            "Your approved primary photo was updated.",
+                          )
+                        }
+                        style={({ pressed }) => [
+                          styles.primaryAction,
+                          pressed && styles.galleryActionPressed,
+                          (Boolean(busyPhotoId) || isUploading) &&
+                            styles.galleryActionDisabled,
+                        ]}
+                      >
+                        <Ionicons
+                          color={palette.brand}
+                          name="star-outline"
+                          size={17}
+                        />
+                        <Text style={styles.primaryActionText}>
+                          {isBusy ? "Updating…" : "Make primary"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+
+                    <View style={styles.galleryActions}>
+                      <Pressable
+                        accessibilityLabel={`Move photo ${index + 1} earlier`}
+                        accessibilityRole="button"
+                        disabled={
+                          index === 0 || Boolean(busyPhotoId) || isUploading
+                        }
+                        onPress={() =>
+                          void changePhoto(
+                            photo,
+                            { ordering: index - 1 },
+                            "Your gallery order was updated.",
+                          )
+                        }
+                        style={({ pressed }) => [
+                          styles.iconAction,
+                          pressed && styles.galleryActionPressed,
+                          (index === 0 || Boolean(busyPhotoId) || isUploading) &&
+                            styles.galleryActionDisabled,
+                        ]}
+                      >
+                        <Ionicons
+                          color={palette.ink}
+                          name="chevron-back"
+                          size={19}
+                        />
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`Move photo ${index + 1} later`}
+                        accessibilityRole="button"
+                        disabled={
+                          index === orderedPhotos.length - 1 ||
+                          Boolean(busyPhotoId) ||
+                          isUploading
+                        }
+                        onPress={() =>
+                          void changePhoto(
+                            photo,
+                            { ordering: index + 1 },
+                            "Your gallery order was updated.",
+                          )
+                        }
+                        style={({ pressed }) => [
+                          styles.iconAction,
+                          pressed && styles.galleryActionPressed,
+                          (index === orderedPhotos.length - 1 ||
+                            Boolean(busyPhotoId) ||
+                            isUploading) &&
+                            styles.galleryActionDisabled,
+                        ]}
+                      >
+                        <Ionicons
+                          color={palette.ink}
+                          name="chevron-forward"
+                          size={19}
+                        />
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`Remove photo ${index + 1}`}
+                        accessibilityRole="button"
+                        disabled={Boolean(busyPhotoId) || isUploading}
+                        onPress={() => confirmRemove(photo)}
+                        style={({ pressed }) => [
+                          styles.iconAction,
+                          styles.removeAction,
+                          pressed && styles.galleryActionPressed,
+                          (Boolean(busyPhotoId) || isUploading) &&
+                            styles.galleryActionDisabled,
+                        ]}
+                      >
+                        <Ionicons
+                          color={palette.danger}
+                          name="trash-outline"
+                          size={18}
+                        />
+                      </Pressable>
+                    </View>
                   </View>
                 );
               })}
+            </View>
           </View>
         ) : null}
 
@@ -650,51 +895,117 @@ const styles = StyleSheet.create({
     marginTop: space.xxs,
     ...typography.small,
   },
-  historyCard: {
+  gallerySection: {
+    marginTop: space.xxxl,
+  },
+  galleryIntro: {
+    color: palette.muted,
+    marginTop: space.xs,
+    maxWidth: 620,
+    ...typography.body,
+  },
+  galleryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.sm,
+    marginTop: space.lg,
+  },
+  galleryCard: {
     backgroundColor: palette.surface,
     borderColor: palette.border,
     borderRadius: radius.md,
     borderWidth: 1,
-    marginTop: space.xxxl,
-    padding: space.md,
+    flexBasis: 250,
+    flexGrow: 1,
+    maxWidth: 420,
+    minWidth: 0,
+    overflow: "hidden",
+    padding: space.sm,
   },
-  historyTitle: {
-    color: palette.ink,
-    marginBottom: space.sm,
-    ...typography.heading,
-  },
-  historyRow: {
-    alignItems: "center",
-    borderTopColor: palette.border,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    flexDirection: "row",
-    gap: space.sm,
-    paddingVertical: space.sm,
-  },
-  historyIndex: {
-    alignItems: "center",
+  galleryImageFrame: {
+    aspectRatio: 4 / 5,
     backgroundColor: palette.canvasStrong,
-    borderRadius: radius.pill,
-    height: 32,
-    justifyContent: "center",
-    width: 32,
+    borderRadius: radius.sm,
+    overflow: "hidden",
+    position: "relative",
+    width: "100%",
   },
-  historyIndexText: {
-    color: palette.inkSoft,
+  galleryImage: {
+    height: "100%",
+    resizeMode: "cover",
+    width: "100%",
+  },
+  galleryImageFallback: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
+  galleryPosition: {
+    alignItems: "center",
+    backgroundColor: palette.surface,
+    borderRadius: radius.pill,
+    height: 28,
+    justifyContent: "center",
+    left: space.sm,
+    position: "absolute",
+    top: space.sm,
+    width: 28,
+  },
+  galleryPositionText: {
+    color: palette.ink,
     fontSize: 12,
     fontWeight: "800",
   },
-  historyCopy: {
-    flex: 1,
+  galleryMeta: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+    justifyContent: "space-between",
+    marginTop: space.sm,
   },
-  historyLabel: {
+  galleryLabel: {
     color: palette.ink,
+    flex: 1,
+    ...typography.bodyStrong,
+  },
+  primaryAction: {
+    alignItems: "center",
+    backgroundColor: palette.brandSoft,
+    borderRadius: radius.sm,
+    flexDirection: "row",
+    gap: space.xs,
+    justifyContent: "center",
+    marginTop: space.sm,
+    minHeight: 42,
+    paddingHorizontal: space.sm,
+  },
+  primaryActionText: {
+    color: palette.brand,
     ...typography.caption,
   },
-  historyDate: {
-    color: palette.muted,
-    marginTop: 2,
-    ...typography.small,
+  galleryActions: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.xs,
+    marginTop: space.sm,
+  },
+  iconAction: {
+    alignItems: "center",
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    height: 40,
+    justifyContent: "center",
+    width: 44,
+  },
+  removeAction: {
+    marginLeft: "auto",
+  },
+  galleryActionPressed: {
+    opacity: 0.72,
+  },
+  galleryActionDisabled: {
+    opacity: 0.35,
   },
   privacyCard: {
     alignItems: "flex-start",
