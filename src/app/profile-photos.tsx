@@ -362,10 +362,10 @@ export default function ProfilePhotosScreen() {
                 source={{ uri: selectedPhoto.uri }}
                 style={styles.preview}
               />
-            ) : sessionPreviewUri ? (
+            ) : sessionPreviewUri || primaryPhoto?.url ? (
               <Image
-                accessibilityLabel="Recently uploaded profile photo"
-                source={{ uri: sessionPreviewUri }}
+                accessibilityLabel="Your stored profile photo"
+                source={{ uri: sessionPreviewUri || primaryPhoto?.url || "" }}
                 style={styles.preview}
               />
             ) : (

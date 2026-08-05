@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vouch Member API",
-    "version": "0.18.0",
+    "version": "0.19.0",
     "description": "Versioned member API for the Vouch Expo mobile app. Served by the `api-v1` Supabase Edge Function at https://PROJECT_REF.supabase.co/functions/v1/api-v1. All routes require a Supabase user JWT via `Authorization: Bearer <token>` and operate under that user's Row-Level Security policies. The Lovable web console and this API share one PostgreSQL system of record and one domain-logic layer; there is no console-only business logic. This file is the canonical contract — the mobile client is generated from it."
   },
   "servers": [
@@ -1830,6 +1830,7 @@
         "required": [
           "id",
           "upload_id",
+          "url",
           "ordering",
           "is_primary",
           "screen_status",
@@ -1844,6 +1845,11 @@
           "upload_id": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
             "nullable": true
           },
           "ordering": {

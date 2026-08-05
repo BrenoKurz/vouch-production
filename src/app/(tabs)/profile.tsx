@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
-import { useFocusEffect, useRouter } from "expo-router";
+import { type Href, useFocusEffect, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Alert,
@@ -660,6 +660,18 @@ export default function ProfileScreen() {
           <Text style={styles.accountEmail}>{session?.user.email}</Text>
 
           <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push("/account" as Href)}
+            style={({ pressed }) => [
+              styles.manageAccountButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.manageAccountText}>Account & settings</Text>
+            <Ionicons color={palette.brand} name="chevron-forward" size={18} />
+          </Pressable>
+
+          <Pressable
             disabled={isSigningOut}
             onPress={handleSignOut}
             style={({ pressed }) => [
@@ -1036,6 +1048,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     padding: 18,
+  },
+  manageAccountButton: {
+    alignItems: "center",
+    borderColor: palette.border,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: space.md,
+    minHeight: 50,
+    paddingHorizontal: space.md,
+  },
+  manageAccountText: {
+    color: palette.ink,
+    ...typography.bodyStrong,
   },
   membershipCard: {
     backgroundColor: palette.surface,

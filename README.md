@@ -22,7 +22,7 @@ pre-match messaging.
 - Photos, verification media, intake media, and safety evidence use private
   signed uploads.
 
-The current member API contract is `0.18.0`.
+The current member API contract is `0.19.0`.
 
 ## Local development
 

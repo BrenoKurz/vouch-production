@@ -48,7 +48,8 @@
           "cameraPermission": "Allow Vouch to use your camera when you choose to take a private profile photo.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

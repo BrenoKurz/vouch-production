@@ -40,8 +40,14 @@ function RootNavigator() {
     <>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="auth/callback" />
+
         <Stack.Protected guard={!session}>
           <Stack.Screen name="sign-in" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={Boolean(session)}>
+          <Stack.Screen name="reset-password" />
         </Stack.Protected>
 
         <Stack.Protected guard={isAccessLoading}>
@@ -63,6 +69,8 @@ function RootNavigator() {
           <Stack.Screen name="edit-profile" />
           <Stack.Screen name="profile-photos" />
           <Stack.Screen name="ai-matchmaker" />
+          <Stack.Screen name="account" />
+          <Stack.Screen name="trust-center" />
           <Stack.Screen name="introduction/[id]" />
           <Stack.Screen name="conversation/[id]" />
           <Stack.Screen name="schedule-date/[conversationId]" />

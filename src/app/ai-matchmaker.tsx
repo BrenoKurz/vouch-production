@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ScrollView,
@@ -273,6 +273,23 @@ export default function AiMatchmakerScreen() {
           ]}
         />
 
+        <View style={styles.correctionCard}>
+          <View style={styles.sectionHeading}>
+            <Ionicons color={palette.brand} name="options-outline" size={21} />
+            <Text style={styles.sectionTitle}>Your compatibility map</Text>
+          </View>
+          <Text style={styles.correctionBody}>
+            Vouch keeps true dealbreakers separate from preferences, values,
+            and practical context. You can review and correct every approved
+            matchmaking fact whenever life changes.
+          </Text>
+          <AppButton
+            label="Review matchmaking facts"
+            onPress={() => router.push("/intake")}
+            variant="secondary"
+          />
+        </View>
+
         <View style={styles.footerCard}>
           <Text style={styles.footerTitle}>
             Your choice is reversible
@@ -500,6 +517,20 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginTop: space.xl,
     padding: space.lg,
+  },
+  correctionCard: {
+    backgroundColor: palette.surface,
+    borderColor: palette.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    gap: space.sm,
+    marginTop: space.xl,
+    padding: space.lg,
+  },
+  correctionBody: {
+    color: palette.inkSoft,
+    marginBottom: space.xs,
+    ...typography.small,
   },
   footerTitle: {
     color: palette.ink,

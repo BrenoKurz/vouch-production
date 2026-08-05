@@ -58,6 +58,21 @@ const EMPTY_DRAFT: IntakeDraft = {
   matchmaker_notes: "",
 };
 
+function draftFromDossier(dossier: IntakeDossier | null): IntakeDraft {
+  if (!dossier) return EMPTY_DRAFT;
+
+  return {
+    relationship_goal: dossier.relationship_goal,
+    partner_qualities: dossier.partner_qualities.join(", "),
+    dealbreakers: dossier.dealbreakers.join(", "),
+    values: dossier.values.join(", "),
+    communication_style: dossier.communication_style,
+    typical_availability: dossier.typical_availability,
+    location_preferences: dossier.location_preferences,
+    matchmaker_notes: dossier.member_visible_summary,
+  };
+}
+
 const STATE_LABELS: Record<MemberIntake["intake_state"], string> = {
   not_started: "Not started",
   in_progress: "In progress",
@@ -249,6 +264,7 @@ export default function IntakeScreen() {
     setIsStarting(true);
     setErrorMessage(null);
     setFieldErrors({});
+    setDraft(draftFromDossier(intake.dossier));
 
     const body: StartIntakeRequest = { modality: "text" };
 
@@ -573,12 +589,14 @@ export default function IntakeScreen() {
                 {intake.can_start ? (
                   <View style={styles.startCard}>
                     <Text style={styles.startTitle}>
-                      About 10 thoughtful minutes
+                      {intake.intake_state === "completed"
+                        ? "Keep your matchmaking facts current"
+                        : "About 10 thoughtful minutes"}
                     </Text>
                     <Text style={styles.startText}>
-                      You’ll cover relationship goals, values, communication,
-                      logistics, and what your matchmaker should understand
-                      about you.
+                      {intake.intake_state === "completed"
+                        ? "Review every fact Vouch uses, correct what changed, and approve the revised dossier before new matching resumes. Existing connections stay available."
+                        : "You’ll cover relationship goals, values, communication, logistics, and what your matchmaker should understand about you."}
                     </Text>
 
                     <Pressable
@@ -594,7 +612,9 @@ export default function IntakeScreen() {
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <Text style={styles.primaryButtonText}>
-                          Begin questionnaire
+                          {intake.intake_state === "completed"
+                            ? "Review and update"
+                            : "Begin questionnaire"}
                         </Text>
                       )}
                     </Pressable>

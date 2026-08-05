@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import {
   createContext,
   type PropsWithChildren,
@@ -14,6 +15,17 @@ type AuthContextValue = {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ requiresEmailConfirmation: boolean }>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
+  updateCommunicationPreferences: (preferences: {
+    email: boolean;
+    inApp: boolean;
+    push: boolean;
+  }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -60,6 +72,49 @@ export function AuthProvider({ children }: PropsWithChildren) {
           password,
         });
 
+        if (error) throw error;
+      },
+      signUp: async (email, password) => {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password,
+          options: {
+            emailRedirectTo: Linking.createURL('/auth/callback'),
+          },
+        });
+
+        if (error) throw error;
+
+        return {
+          requiresEmailConfirmation: !data.session,
+        };
+      },
+      requestPasswordReset: async (email) => {
+        const redirectTo = Linking.createURL('/auth/callback', {
+          queryParams: { purpose: 'recovery' },
+        });
+        const { error } = await supabase.auth.resetPasswordForEmail(
+          email.trim().toLowerCase(),
+          { redirectTo },
+        );
+
+        if (error) throw error;
+      },
+      updatePassword: async (password) => {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+      },
+      updateCommunicationPreferences: async (preferences) => {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            vouch_communication_preferences: {
+              email: preferences.email,
+              in_app: preferences.inApp,
+              push: preferences.push,
+              updated_at: new Date().toISOString(),
+            },
+          },
+        });
         if (error) throw error;
       },
       signOut: async () => {

@@ -2294,6 +2294,8 @@ export interface components {
             id: string;
             /** Format: uuid */
             upload_id: string | null;
+            /** Format: uri */
+            url: string | null;
             ordering: number;
             is_primary: boolean;
             /** @enum {string} */
